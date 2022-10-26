@@ -28,6 +28,9 @@ manager behavior.
 - If no `library_path` has been specified, the `BAL_LIBRARY_PATH` env
   var will be checked to see if it points to a valid library file.
 
+- Persists newly registered data in-memory (the original library JSON is
+  not updated).
+
 ## Installation
 
 To use the plugin in an OpenAssetIO host, set (or append) the
