@@ -19,14 +19,14 @@ manager behavior.
 
 ## Features
 
--   Resolves references with the `bal:///` prefix to data from a
-    pre-configured library of assets stored in a `.json` file.
+- Resolves references with the `bal:///` prefix to data from a
+  pre-configured library of assets stored in a `.json` file.
 
--   The library file to be used is controlled by the `library_path`
-    setting, and this should point to a library file with valid content.
+- The library file to be used is controlled by the `library_path`
+  setting, and this should point to a library file with valid content.
 
--   If no `library_path` has been specified, the `BAL_LIBRARY_PATH` env
-    var will be checked to see if it points to a valid library file.
+- If no `library_path` has been specified, the `BAL_LIBRARY_PATH` env
+  var will be checked to see if it points to a valid library file.
 
 ## Installation
 
