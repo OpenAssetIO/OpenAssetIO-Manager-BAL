@@ -52,13 +52,13 @@ that validates a BAL library file.
 
 ## Testing
 
-The test fixtures take care of configuring the OpenAssetIO plugin search
-paths for you. Assuming your working directory is set to the root of
-this checkout:
+The test fixtures take care of providing a suitable host environment and
+configuring the OpenAssetIO plugin search paths for you. Assuming your
+working directory is set to the root of this checkout:
 
 ```bash
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -r tests/requirements.txt
-pytest
+python -m pytest
 ```
