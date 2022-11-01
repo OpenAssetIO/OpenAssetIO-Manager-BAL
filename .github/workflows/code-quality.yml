@@ -1,0 +1,44 @@
+name: Code quality
+on: pull_request
+
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+    name: Pylint
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r tests/requirements.txt
+
+      - name: Lint
+        uses: TheFoundryVisionmongers/fn-pylint-action@v1.1
+        with:
+          pylint-disable: fixme  # We track 'todo's through other means
+          pylint-rcfile: "./pyproject.toml"
+          pylint-paths: "plugin tests"
+
+  black:
+    runs-on: ubuntu-latest
+    name: Python formatting
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install black
+
+      - name: Check Python formatting
+        run: black --check .
+

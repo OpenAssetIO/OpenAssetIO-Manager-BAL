@@ -43,7 +43,7 @@ need to be on `$PYTHONPATH` directly, the plugin system takes care
 of extending Python's runtime paths accordingly.
 """
 
-# pylint: disable=import-outside-toplevel
+# pylint: disable=import-outside-toplevel, invalid-name
 #
 # It is important to minimise imports here. This module will be loaded
 # when the plugin system scans for plugins. Postpone importing any
@@ -73,6 +73,4 @@ class BasicAssetLibraryPlugin(PythonPluginSystemManagerPlugin):
 # Set the plugin class as the public entrypoint for the plugin system.
 # A plugin is only considered if it exposes a `plugin` variable at this
 # level, holding a class derived from PythonPluginSystemManagerPlugin.
-
-# pylint: disable=invalid-name
 plugin = BasicAssetLibraryPlugin

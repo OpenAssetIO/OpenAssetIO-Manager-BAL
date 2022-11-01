@@ -34,7 +34,6 @@ $OPENASSETIO_PLUGIN_PATH:
 import os
 import pytest
 
-# pylint: disable=no-self-use
 # pylint: disable=invalid-name,redefined-outer-name
 # pylint: disable=missing-class-docstring,missing-function-docstring
 
