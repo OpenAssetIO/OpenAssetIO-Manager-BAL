@@ -94,7 +94,7 @@ fixtures = {
             ),
             "a_malformed_reference": MALFORMED_REF,
             "the_error_string_for_a_malformed_reference": (
-                f"Missing entity name in path component"
+                "Missing entity name in path component"
             ),
         }
     },
@@ -103,7 +103,7 @@ fixtures = {
             "a_reference_to_a_writable_entity": "bal:///someNewEntity",
             "a_set_of_valid_traits": some_registerable_traitset,
             "the_error_string_for_a_malformed_reference": (
-                f"Missing entity name in path component"
+                "Missing entity name in path component"
             ),
         }
     },
@@ -112,7 +112,7 @@ fixtures = {
             "a_reference_to_a_writable_entity": "bal:///someNewEntity",
             "a_traitsdata_for_a_reference_to_a_writable_entity": some_registerable_traitsdata,
             "the_error_string_for_a_malformed_reference": (
-                f"Missing entity name in path component"
+                "Missing entity name in path component"
             ),
         }
     },
