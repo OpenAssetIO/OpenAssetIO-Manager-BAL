@@ -168,8 +168,14 @@ def _library_entity_dict(entity_info: EntityInfo, library: dict):
 
 
 class UnknownBALEntity(Exception):
-    pass
+    """
+    An exception raised for a reference to a non-existent entity in the
+    library.
+    """
 
 
 class MalformedBALReference(Exception):
-    pass
+    """
+    An exception raised for a reference that is missing an entity name
+    or other required part.
+    """
