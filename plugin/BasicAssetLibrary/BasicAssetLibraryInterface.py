@@ -13,6 +13,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
+
+# Fix module-level name check, as well as OpenAssetIO methods
+# pylint: disable=invalid-name
 """
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
@@ -36,7 +39,7 @@ __all__ = [
 # pylint: disable=abstract-method
 # Methods in C++ end up with "missing docstring"
 # pylint: disable=missing-docstring
-# pylint: disable=no-self-use, too-many-arguments, invalid-name
+# pylint: disable=too-many-arguments, unused-argument
 
 
 class BasicAssetLibraryInterface(ManagerInterface):
@@ -64,11 +67,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return {constants.kField_EntityReferencesMatchPrefix: self.__reference_prefix}
 
     def settings(self, hostSession):
-        # pylint: disable=unused-argument
         return self.__settings.copy()
 
     def initialize(self, managerSettings, hostSession):
-        # pylint: disable=unused-argument
         bal.validate_settings(managerSettings)
         self.__settings.update(managerSettings)
 
@@ -99,7 +100,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
         ]
 
     def isEntityReferenceString(self, someString, hostSession):
-        # pylint: disable=unused-argument
         return someString.startswith(self.__reference_prefix)
 
     def entityExists(self, entityRefs, context, hostSession):
