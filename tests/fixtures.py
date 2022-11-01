@@ -39,11 +39,11 @@ with open(test_library_path, "r", encoding="utf-8") as file:
 # Constants
 #
 
-identifier = "org.openassetio.examples.manager.bal"
+IDENTIFIER = "org.openassetio.examples.manager.bal"
 
-valid_ref = "bal:///references/can/contain/🐠"
-non_ref = "not a Ŕeference"
-malformed_ref = "bal:///"
+VALID_REF = "bal:///references/can/contain/🐠"
+NON_REF = "not a Ŕeference"
+MALFORMED_REF = "bal:///"
 
 an_existing_entity_name = next(iter(test_library["entities"].keys()))
 
@@ -53,14 +53,14 @@ some_registerable_traitsdata.setTraitProperty("trait1", "some", "stringValue")
 some_registerable_traitsdata.setTraitProperty("trait2", "count", 4)
 
 fixtures = {
-    "identifier": identifier,
+    "identifier": IDENTIFIER,
     "settings": {"library_path": test_library_path},
     "shared": {
-        "a_valid_reference": valid_ref,
-        "an_invalid_reference": non_ref,
-        "a_malformed_reference": malformed_ref,
+        "a_valid_reference": VALID_REF,
+        "an_invalid_reference": NON_REF,
+        "a_malformed_reference": MALFORMED_REF,
     },
-    "Test_identifier": {"test_matches_fixture": {"identifier": identifier}},
+    "Test_identifier": {"test_matches_fixture": {"identifier": IDENTIFIER}},
     "Test_displayName": {"test_matches_fixture": {"display_name": "Basic Asset Library 📖"}},
     "Test_info": {
         "test_matches_fixture": {"info": {kField_EntityReferencesMatchPrefix: "bal:///"}}
@@ -79,7 +79,7 @@ fixtures = {
     "Test_entityExists": {
         "shared": {
             "a_reference_to_an_existing_entity": f"bal:///{an_existing_entity_name}",
-            "a_reference_to_a_nonexisting_entity": valid_ref,
+            "a_reference_to_a_nonexisting_entity": VALID_REF,
         }
     },
     "Test_resolve": {
@@ -92,7 +92,7 @@ fixtures = {
             "the_error_string_for_a_reference_to_a_missing_entity": (
                 "Entity 'bal:///missing_entity' not found"
             ),
-            "a_malformed_reference": malformed_ref,
+            "a_malformed_reference": MALFORMED_REF,
             "the_error_string_for_a_malformed_reference": (
                 f"Missing entity name in path component"
             ),
