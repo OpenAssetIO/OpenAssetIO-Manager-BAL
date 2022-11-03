@@ -26,16 +26,6 @@ import pytest
 from openassetio.test.manager import harness
 
 
-@pytest.fixture(autouse=True)
-def bal_plugin_env(bal_base_dir, monkeypatch):
-    """
-    Provides a modified environment with the BasicAssetLibrary
-    plugin on the OpenAssetIO search path.
-    """
-    plugin_dir = os.path.join(bal_base_dir, "plugin")
-    monkeypatch.setenv("OPENASSETIO_PLUGIN_PATH", plugin_dir)
-
-
 @pytest.fixture
 def harness_fixtures(bal_base_dir):
     """

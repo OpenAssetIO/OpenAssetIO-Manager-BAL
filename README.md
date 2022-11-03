@@ -33,32 +33,30 @@ manager behavior.
 
 ## Installation
 
-To use the plugin in an OpenAssetIO host, set (or append) the
-`OPENASSETIO_PLUGIN_PATH` env var to include the `python` directory in
-this checkout.
+To use the plugin in an OpenAssetIO host, install via `pip`, or set (or append) the
+`OPENASSETIO_PLUGIN_PATH` env var to include the `plugin` directory in
+a checkout of the [source repository](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL).
 
 The plugin provides a manager with the identifier
 `org.openassetio.examples.manager.bal`.
 
-The plugin requires `openassetio` to be available to python at
-runtime. This is normally provided by the host tool or application (see
-the [project documentation](https://github.com/OpenAssetIO/OpenAssetIO#getting-started)
-for more information if you need to install yourself).
-
 ## Library file format
 
-A [JSON Schema](https://json-schema.org) is provided [here](schema.json)
+A [JSON Schema](https://json-schema.org) is provided
+[here](https://raw.githubusercontent.com/OpenAssetIO/OpenAssetIO-Manager-BAL/main/schema.json)
 that validates a BAL library file.
 
 ## Testing
 
 The test fixtures take care of providing a suitable host environment and
 configuring the OpenAssetIO plugin search paths for you. Assuming your
-working directory is set to the root of this checkout:
+working directory is set to a checkout of the
+[source repository](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL):
 
 ```bash
 python -m venv .venv
 . .venv/bin/activate
+python -m pip install .
 python -m pip install -r tests/requirements.txt
-python -m pytest
+python -m pytest ./tests
 ```

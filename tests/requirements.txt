@@ -1,4 +1,3 @@
 black
-openassetio
 pylint==2.15.5  # Guard against warn/error changes
 pytest

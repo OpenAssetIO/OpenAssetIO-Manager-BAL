@@ -1,10 +1,59 @@
-# NB: This requires the use of pyproject-flake8
-[tool.flake8]
-max-line-length = 99
-extend-ignore = "E266,"
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2022 The Foundry Visionmongers Ltd
+
+[project]
+name = "openassetio-manager-bal"
+version = "1.0.0a2"
+requires-python = ">=3.7"
+dependencies = [
+    "openassetio == 1.0.0a7"
+]
+
+authors = [
+  { name = "Contributors to the OpenAssetIO project", email = "openassetio-discussion@lists.aswf.io" }
+]
+
+description = """\
+A contrived "asset management system" for OpenAssetIO integration test cases.\
+"""
+keywords = ["openassetio", "manager"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3"
+]
+readme = "README.md"
+
+[project.urls]
+Source = "https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL"
+Issues = "https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues"
+
+# Defines a Python entry point that exposes the plugin's package to
+# allow entry point based discovery.
+[project.entry-points."openassetio.manager_plugin"]
+plugin_package_or_module = "openassetio_manager_bal"
+
+[build-system]
+requires = [
+    "setuptools>=65.5.0"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where =["plugin"]
 
 [tool.pylint.format]
 max-line-length = 99
 
 [tool.black]
 line-length = 99
+
+# NB: This requires the use of pyproject-flake8
+[tool.flake8]
+max-line-length = 99
+extend-ignore = "E266,"

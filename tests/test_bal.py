@@ -38,11 +38,20 @@ import pytest
 # pylint: disable=missing-class-docstring,missing-function-docstring
 
 from openassetio.test.manager import harness, apiComplianceSuite
+from openassetio.pluginSystem import PythonPluginSystemManagerPlugin
 
 
 #
 # Tests
 #
+
+# BAL exposes an entry point, so can be pip installed without needing
+# to extend OPENASSETIO_PLUGIN_PATH.
+# Tests should be invoked from an install
+#
+#   python -m pip install .
+#   python -m pip install -r tests/requirements.txt
+#   python -m pytest tests
 
 
 class Test_BasicAssetLibrary:
@@ -51,6 +60,13 @@ class Test_BasicAssetLibrary:
 
     def test_passes_bal_business_logic_suite(self, bal_business_logic_suite, harness_fixtures):
         assert harness.executeSuite(bal_business_logic_suite, harness_fixtures)
+
+
+class Test_BasicAssetLibrary_Plugin:
+    def test_exposes_plugin_attribute_with_correct_type(self):
+        import openassetio_manager_bal  # pylint: disable=import-outside-toplevel
+
+        assert issubclass(openassetio_manager_bal.plugin, PythonPluginSystemManagerPlugin)
 
 
 @pytest.fixture
