@@ -72,9 +72,9 @@
             }
           },
           "additionalProperties": false
-        },
-        "additionalProperties": false
-      }
+        }
+      },
+      "additionalProperties": false
     },
     "entities": {
       "description": "The entities in the library, they key is used as the entity name.",

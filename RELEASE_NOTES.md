@@ -16,6 +16,11 @@ v1.0.0-alpha.2
   with OpenAssetIO without needing to extend `OPENASSETIO_PLUGIN_PATH`.
   [#9](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/9)
 
+### Bug fixes
+
+- Properly disallowed unsupported properties under `managementPolicy`
+  in the JSON schema.
+
 
 v1.0.0-alpha.1
 --------------
