@@ -18,8 +18,8 @@ v1.0.0-alpha.2
 
 ### Bug fixes
 
-- Properly disallowed unsupported properties under `managementPolicy`
-  in the JSON schema.
+- Updated the JSON schema for `managementPolicy` to properly disallow
+  unsupported properties and to support a `write` policy.
 
 
 v1.0.0-alpha.1
