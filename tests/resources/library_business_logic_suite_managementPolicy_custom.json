@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/OpenAssetIO/OpenAssetIO-Manager-BAL/main/schema.json",
   "managementPolicy": {
     "read": {
-      "default": {"openassetio.Managed": {"exclusive": true}},
+      "default": {"bal:test.SomePolicy": {"exclusive": true}},
       "exceptions": [
         {
           "traitSet": ["an", "ignored", "trait", "set"],
@@ -10,7 +10,7 @@
         },
         {
           "traitSet": ["a", "non", "exclusive", "trait", "set"],
-          "policy": {"openassetio.Managed": {}}
+          "policy": {"bal:test.SomePolicy": {}}
         }
       ]
     },
@@ -19,7 +19,7 @@
       "exceptions": [
         {
           "traitSet": ["a", "managed", "trait", "set"],
-          "policy": {"openassetio.Managed": {}}
+          "policy": {"bal:test.SomePolicy": {}}
         }
       ]
     }

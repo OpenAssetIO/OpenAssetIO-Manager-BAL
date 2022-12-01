@@ -1,6 +1,19 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### Breaking changes
+
+- Management policy queries will no longer fall back to a hardcoded
+  default if no policy was found in the library, and will raise an
+  exception instead. If a `managementPolicy` is defined in the JSON
+  library, then the JSON schema requires both `read.default` and
+  `write.default` policies to be defined.
+  [#6](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/6)
+
+
 v1.0.0-alpha.2
 --------------
 

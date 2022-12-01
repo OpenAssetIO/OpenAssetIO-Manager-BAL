@@ -71,6 +71,7 @@
               }
             }
           },
+          "required": ["default"],
           "additionalProperties": false
         },
         "write": {
@@ -135,9 +136,11 @@
               }
             }
           },
+          "required": ["default"],
           "additionalProperties": false
         }
       },
+      "required": ["read", "write"],
       "additionalProperties": false
     },
     "entities": {
