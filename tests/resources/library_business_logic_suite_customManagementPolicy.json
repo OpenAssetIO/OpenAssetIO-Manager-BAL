@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/OpenAssetIO/OpenAssetIO/main/resources/examples/manager/BasicAssetLibrary/schema.json",
+  "$schema": "https://raw.githubusercontent.com/OpenAssetIO/OpenAssetIO-Manager-BAL/main/schema.json",
   "managementPolicy": {
     "read": {
       "default": {"openassetio.Managed": {"exclusive": true}},
