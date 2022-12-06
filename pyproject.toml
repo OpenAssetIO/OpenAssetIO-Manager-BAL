@@ -30,6 +30,7 @@ classifiers = [
 readme = "README.md"
 
 [project.urls]
+OpenAssetIO = "https://github.com/OpenAssetIO/OpenAssetIO"
 Source = "https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL"
 Issues = "https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues"
 
