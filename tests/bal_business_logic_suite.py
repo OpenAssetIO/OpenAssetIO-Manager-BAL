@@ -24,43 +24,117 @@ import operator
 import os
 
 from openassetio import Context, TraitsData
-from openassetio.traits.managementPolicy import ManagedTrait
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
+
 
 __all__ = []
 
 
-class Test_managementPolicy_default_behavior(FixtureAugmentedTestCase):
+class LibraryOverrideTestCase(FixtureAugmentedTestCase):
     """
-    Tests that by default, the BAL manages all entities, for read, but
-    nothing for write.
+    Utility base class to load a custom BAL library for the duration of
+    the tests in a subclass.
+
+    Assumes a `_library` class attribute that gives the name of the JSON
+    file to load from the `resources` directory.
     """
 
-    __trait_sets = (
-        {"blob", "image"},
-        {"container", "shot", "frame_ranged"},
-        {"definitely_unique"},
-    )
+    _library = None
 
-    def test_returns_cooperative_policy_for_read_for_all_trait_sets(self):
+    def setUp(self):
+        self.__old_settings = self._manager.settings()
+        new_settings = self.__old_settings.copy()
+        new_settings["library_path"] = os.path.join(
+            os.path.dirname(__file__),
+            "resources",
+            self._library,
+        )
+        self._manager.initialize(new_settings)
+        self.addCleanup(self.cleanUp)
+
+    def cleanUp(self):
+        self._manager.initialize(self.__old_settings)
+
+
+class Test_managementPolicy_missing_completely(LibraryOverrideTestCase):
+    """
+    Tests error case when  BAL library managementPolicy is missing.
+    """
+
+    _library = "library_business_logic_suite_blank.json"
+
+    def test_when_read_policy_queried_from_library_with_no_policies_then_raises_exception(
+        self,
+    ):
         context = self.createTestContext(access=Context.Access.kRead)
-        policies = self._manager.managementPolicy(self.__trait_sets, context)
-        for policy in policies:
-            managedTrait = ManagedTrait(policy)
-            self.assertTrue(managedTrait.isValid())
-            self.assertIsNone(managedTrait.getExclusive())
 
-    def test_returns_cooperative_policy_for_write_for_all_trait_sets(self):
+        with self.assertRaises(LookupError) as ex:
+            self._manager.managementPolicy([{"a trait"}], context)
+
+        self.assertEqual(
+            str(ex.exception),
+            "BAL library is missing a managementPolicy for 'read'. Perhaps your library is"
+            " missing a 'default'? Please consult the JSON schema.",
+        )
+
+    def test_when_write_policy_queried_from_library_with_no_policies_then_raises_exception(
+        self,
+    ):
         context = self.createTestContext(access=Context.Access.kWrite)
-        policies = self._manager.managementPolicy(self.__trait_sets, context)
-        for policy in policies:
-            self.assertTrue(policy.hasTrait(ManagedTrait.kId))
+
+        with self.assertRaises(LookupError) as ex:
+            self._manager.managementPolicy([{"a trait"}], context)
+
+        self.assertEqual(
+            str(ex.exception),
+            "BAL library is missing a managementPolicy for 'write'. Perhaps your library is"
+            " missing a 'default'? Please consult the JSON schema.",
+        )
 
 
-class Test_managementPolicy_library_specified_behavior(FixtureAugmentedTestCase):
+class Test_managementPolicy_missing_default(LibraryOverrideTestCase):
+    """
+    Tests error case when  BAL library managementPolicy is missing a
+    "default" policy.
+    """
+
+    _library = "library_business_logic_suite_managementPolicy_missing_default.json"
+
+    def test_when_read_policy_queried_from_library_missing_default_policy_then_raises_exception(
+        self,
+    ):
+        context = self.createTestContext(access=Context.Access.kRead)
+
+        with self.assertRaises(LookupError) as ex:
+            self._manager.managementPolicy([{"a trait"}], context)
+
+        self.assertEqual(
+            str(ex.exception),
+            "BAL library is missing a managementPolicy for 'read'. Perhaps your library is"
+            " missing a 'default'? Please consult the JSON schema.",
+        )
+
+    def test_when_write_policy_queried_from_library_missing_default_policy_then_raises_exception(
+        self,
+    ):
+        context = self.createTestContext(access=Context.Access.kWrite)
+
+        with self.assertRaises(LookupError) as ex:
+            self._manager.managementPolicy([{"a trait"}], context)
+
+        self.assertEqual(
+            str(ex.exception),
+            "BAL library is missing a managementPolicy for 'write'. Perhaps your library is"
+            " missing a 'default'? Please consult the JSON schema.",
+        )
+
+
+class Test_managementPolicy_library_specified_behavior(LibraryOverrideTestCase):
     """
     Tests that custom policies are loaded and respected.
     """
+
+    _library = "library_business_logic_suite_managementPolicy_custom.json"
 
     __read_trait_sets = (
         {"definitely", "unique"},
@@ -73,30 +147,14 @@ class Test_managementPolicy_library_specified_behavior(FixtureAugmentedTestCase)
         {"a", "managed", "trait", "set"},
     )
 
-    # We need to load a different library for these tests. This is
-    # a little fiddly as the manager isn't (currently) recreated
-    # for each test.
-
-    ## @todo Extend openassetio.test.manager to allow settings to be
-    ## varied per test class/method.
-
-    def setUp(self):
-        self.__old_settings = self._manager.settings()
-        new_settings = self.__old_settings.copy()
-        new_settings["library_path"] = os.path.join(
-            os.path.dirname(__file__),
-            "resources",
-            "library_business_logic_suite_customManagementPolicy.json",
-        )
-        self._manager.initialize(new_settings)
-
-    def tearDown(self):
-        self._manager.initialize(self.__old_settings)
-
     def test_returns_expected_policies_for_all_trait_sets(self):
         context = self.createTestContext(access=Context.Access.kRead)
-        expected = [TraitsData({ManagedTrait.kId}), TraitsData(), TraitsData({ManagedTrait.kId})]
-        ManagedTrait(expected[0]).setExclusive(True)
+        expected = [
+            TraitsData({"bal:test.SomePolicy"}),
+            TraitsData(),
+            TraitsData({"bal:test.SomePolicy"}),
+        ]
+        expected[0].setTraitProperty("bal:test.SomePolicy", "exclusive", True)
 
         actual = self._manager.managementPolicy(self.__read_trait_sets, context)
 
@@ -104,7 +162,7 @@ class Test_managementPolicy_library_specified_behavior(FixtureAugmentedTestCase)
 
     def test_returns_expected_policy_for_write_for_all_trait_sets(self):
         context = self.createTestContext(access=Context.Access.kWrite)
-        expected = [TraitsData(), TraitsData({ManagedTrait.kId})]
+        expected = [TraitsData(), TraitsData({"bal:test.SomePolicy"})]
 
         actual = self._manager.managementPolicy(self.__write_trait_sets, context)
 

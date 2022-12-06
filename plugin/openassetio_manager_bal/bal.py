@@ -30,6 +30,7 @@ from collections import namedtuple
 from typing import Set
 from urllib.parse import urlparse
 
+
 EntityInfo = namedtuple("EntityInfo", ("name"), defaults=("",))
 Entity = namedtuple("Entity", ("traits"), defaults=({},))
 
@@ -109,14 +110,15 @@ def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
     """
     policies = library.get("managementPolicy", {}).get(access, {})
     exceptions = policies.get("exceptions", [])
-    matching_policies = [e["policy"] for e in exceptions if set(e["traitSet"]) == trait_set]
+    matching_exceptions = (e["policy"] for e in exceptions if set(e["traitSet"]) == trait_set)
+    policy = next(matching_exceptions, policies.get("default"))
 
-    # By default, cooperatively manager all trait sets, unless the
-    # library tells us otherwise.
-    if matching_policies:
-        policy = matching_policies[0]
-    else:
-        policy = policies.get("default", {"openassetio.Managed": {}})
+    if policy is None:
+        raise LookupError(
+            f"BAL library is missing a managementPolicy for '{access}'. Perhaps your library is"
+            " missing a 'default'? Please consult the JSON schema."
+        )
+
     return policy
 
 
