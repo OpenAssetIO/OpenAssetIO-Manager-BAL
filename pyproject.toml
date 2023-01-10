@@ -38,6 +38,9 @@ Issues = "https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues"
 # allow entry point based discovery.
 [project.entry-points."openassetio.manager_plugin"]
 plugin_package_or_module = "openassetio_manager_bal"
+# Poetry's alternate declaration of an entry point
+[tool.poetry.plugins."openassetio.manager_plugin"]
+plugin_package_or_module = "openassetio_manager_bal"
 
 [build-system]
 requires = [

@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### Improvements
+
+- Adds entry point support for Poetry based builds.
+  [#16](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/16)
+
+
 v1.0.0-alpha.3
 --------------
 
