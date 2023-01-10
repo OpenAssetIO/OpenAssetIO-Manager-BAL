@@ -13,8 +13,8 @@ v1.0.0-alpha.x
 
 ## Improvements
 
-- Improved error messaging for missing entities - they now also contain
-  the missing entity's name.
+- Improved error messaging for missing entities and malformed entity
+  references - it now contains the relevant string to aid debugging.
 
 
 v1.0.0-alpha.3
