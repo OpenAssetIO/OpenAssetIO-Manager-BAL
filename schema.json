@@ -177,6 +177,42 @@
                 "required": ["traits"],
                 "additionalProperties": false
               }
+            },
+            "relations": {
+              "type": "array",
+              "description": "The relations array holds descriptions of ",
+              "items": {
+                "type": "object",
+                "description": "The definition of a particular relationship",
+                "properties": {
+                  "traits": {
+                    "description": "Traits and their associated properties for the relationship.",
+                    "type": "object",
+                    "patternProperties": {
+                      ".*": {
+                        "description": "The trait's property values.",
+                        "type": "object",
+                        "patternProperties": {
+                          ".*": {
+                            "type": ["string", "number", "boolean"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "entities": {
+                    "type": "array",
+                    "description": "The names of the entities that are related by this relationship.",
+                    "minItems": 1,
+                    "items": {
+                      "description": "The name of the entity as it appears in the top-level 'entities' object.",
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["traits", "entities"],
+                "additionalProperties": false
+              }
             }
           },
           "required": ["versions"],

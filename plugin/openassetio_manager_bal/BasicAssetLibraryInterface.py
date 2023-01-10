@@ -189,6 +189,28 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 )
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
 
+    def getRelatedReferences(
+        self, entityRefs, relationshipTraitsDatas, context, hostSession, resultTraitSet=None
+    ):
+        # Ensure we have equal length arrays by expanding singular values
+        # (the inputs will always be arrays, just may have one entry).
+        # The middleware takes care of assuring that the are already
+        # equal in length if not either of the 1:many cases.
+        if len(entityRefs) == 1 and len(relationshipTraitsDatas) > 1:
+            entityRefs = entityRefs * len(relationshipTraitsDatas)
+        elif len(relationshipTraitsDatas) == 1 and len(entityRefs) > 1:
+            relationshipTraitsDatas = relationshipTraitsDatas * len(entityRefs)
+
+        results = []
+        for entity_ref, relation_traits in zip(entityRefs, relationshipTraitsDatas):
+            entity_info = bal.parse_entity_ref(entity_ref.toString())
+            relations = bal.related_references(
+                entity_info, relation_traits, resultTraitSet, self.__library
+            )
+            # Convert the EntityInfos to entity references
+            results.append([self.__build_entity_ref(i) for i in relations])
+        return results
+
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
         Builds an openassetio EntityReference from a BAL EntityInfo
