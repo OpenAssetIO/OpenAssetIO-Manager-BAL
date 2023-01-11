@@ -20,6 +20,7 @@
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
 
+import itertools
 import os
 
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
@@ -192,23 +193,24 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def getRelatedReferences(
         self, entityRefs, relationshipTraitsDatas, context, hostSession, resultTraitSet=None
     ):
-        # Ensure we have equal length arrays by expanding singular values
-        # (the inputs will always be arrays, just may have one entry).
-        # The middleware takes care of assuring that the are already
-        # equal in length if not either of the 1:many cases.
-        if len(entityRefs) == 1 and len(relationshipTraitsDatas) > 1:
-            entityRefs = entityRefs * len(relationshipTraitsDatas)
-        elif len(relationshipTraitsDatas) == 1 and len(entityRefs) > 1:
-            relationshipTraitsDatas = relationshipTraitsDatas * len(entityRefs)
-
         results = []
-        for entity_ref, relation_traits in zip(entityRefs, relationshipTraitsDatas):
+
+        # The inputs are either equal length arrays with index-wise
+        # correspondence, or, one of refs or relationships will have a
+        # single element that should be used for each entry in the
+        # other.
+        fill_value = entityRefs[0] if len(entityRefs) == 1 else relationshipTraitsDatas[0]
+
+        for entity_ref, relation_traits in itertools.zip_longest(
+            entityRefs, relationshipTraitsDatas, fillvalue=fill_value
+        ):
             entity_info = bal.parse_entity_ref(entity_ref.toString())
             relations = bal.related_references(
                 entity_info, relation_traits, resultTraitSet, self.__library
             )
             # Convert the EntityInfos to entity references
             results.append([self.__build_entity_ref(i) for i in relations])
+
         return results
 
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
