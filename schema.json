@@ -177,6 +177,42 @@
                 "required": ["traits"],
                 "additionalProperties": false
               }
+            },
+            "relations": {
+              "type": "array",
+              "description": "Descriptions of entity relationships. These combine a description of the nature of the relationship - using traits, and a list of related entities.",
+              "items": {
+                "type": "object",
+                "description": "The definition of a particular relationship",
+                "properties": {
+                  "traits": {
+                    "description": "Traits and their associated properties that describe the nature of the relationship itself (not the related entities).",
+                    "type": "object",
+                    "patternProperties": {
+                      ".*": {
+                        "description": "The trait's property values.",
+                        "type": "object",
+                        "patternProperties": {
+                          ".*": {
+                            "type": ["string", "number", "boolean"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "entities": {
+                    "type": "array",
+                    "description": "The entities that are referenced by this relationship.",
+                    "minItems": 1,
+                    "items": {
+                      "description": "The name of the BAL entity as it appears in the top-level 'entities' object.",
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["traits", "entities"],
+                "additionalProperties": false
+              }
             }
           },
           "required": ["versions"],
