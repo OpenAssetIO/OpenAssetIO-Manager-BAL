@@ -180,13 +180,13 @@
             },
             "relations": {
               "type": "array",
-              "description": "The relations array holds descriptions of ",
+              "description": "Descriptions of entity relationships. These combine a description of the nature of the relationship - using traits, and a list of related entities.",
               "items": {
                 "type": "object",
                 "description": "The definition of a particular relationship",
                 "properties": {
                   "traits": {
-                    "description": "Traits and their associated properties for the relationship.",
+                    "description": "Traits and their associated properties that describe the nature of the relationship itself (not the related entities).",
                     "type": "object",
                     "patternProperties": {
                       ".*": {
@@ -202,10 +202,10 @@
                   },
                   "entities": {
                     "type": "array",
-                    "description": "The names of the entities that are related by this relationship.",
+                    "description": "The entities that are referenced by this relationship.",
                     "minItems": 1,
                     "items": {
-                      "description": "The name of the entity as it appears in the top-level 'entities' object.",
+                      "description": "The name of the BAL entity as it appears in the top-level 'entities' object.",
                       "type": "string"
                     }
                   }
