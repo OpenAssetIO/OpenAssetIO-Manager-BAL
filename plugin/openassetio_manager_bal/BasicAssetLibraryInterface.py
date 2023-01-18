@@ -20,6 +20,7 @@
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
 
+import itertools
 import os
 
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
@@ -188,6 +189,32 @@ class BasicAssetLibraryInterface(ManagerInterface):
                     entity_info, traits_dict, self.__library
                 )
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
+
+    def getRelatedReferences(
+        self, entityRefs, relationshipTraitsDatas, context, hostSession, resultTraitSet=None
+    ):
+        results = []
+
+        # The inputs are either equal length arrays with index-wise
+        # correspondence, or, one of refs or relationships will have a
+        # single element that should be used for each entry in the
+        # other.
+        fill_value = entityRefs[0] if len(entityRefs) == 1 else relationshipTraitsDatas[0]
+
+        for entity_ref, relation_traits in itertools.zip_longest(
+            entityRefs, relationshipTraitsDatas, fillvalue=fill_value
+        ):
+            entity_info = bal.parse_entity_ref(entity_ref.toString())
+            relations = bal.related_references(
+                entity_info,
+                self.__traits_data_to_dict(relation_traits),
+                resultTraitSet,
+                self.__library,
+            )
+            # Convert the EntityInfos to entity references
+            results.append([self.__build_entity_ref(i) for i in relations])
+
+        return results
 
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """

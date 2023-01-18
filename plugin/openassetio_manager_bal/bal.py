@@ -27,12 +27,13 @@ engineering practice".
 import json
 
 from collections import namedtuple
-from typing import Set
+from typing import List, Set, Optional
 from urllib.parse import urlparse
 
 
 EntityInfo = namedtuple("EntityInfo", ("name"), defaults=("",))
-Entity = namedtuple("Entity", ("traits"), defaults=({},))
+Entity = namedtuple("Entity", ("traits", "relations"), defaults=({}, []))
+Relation = namedtuple("Relation", ("traits", "entity_infos"))
 
 
 def make_default_settings() -> dict:
@@ -99,7 +100,15 @@ def entity(entity_info: EntityInfo, library: dict) -> Entity:
     if entity_dict is None:
         raise UnknownBALEntity(entity_info)
 
-    return Entity(**entity_dict["versions"][-1])
+    relations = [
+        Relation(
+            traits=relation["traits"],
+            entity_infos=[EntityInfo(name) for name in relation["entities"]],
+        )
+        for relation in entity_dict.get("relations", [])
+    ]
+
+    return Entity(**entity_dict["versions"][-1], relations=relations)
 
 
 def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
@@ -120,6 +129,36 @@ def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
         )
 
     return policy
+
+
+def related_references(
+    entity_info: EntityInfo,
+    requested_relation_traits: dict,
+    result_trait_set: Optional[Set[str]],
+    library: dict,
+) -> List[EntityInfo]:
+    """
+    Retrieves a list of related entities based on the supplied criteria.
+    Relations are un-versioned so will always return an unversioned ref.
+    """
+    results = []
+
+    # Will throw if invalid
+    entity_data = entity(entity_info, library)
+
+    for relation in entity_data.relations:
+        # Check if this relation contains the requested traits
+        if not _dict_has_traits(relation.traits, requested_relation_traits):
+            continue
+        for related_entity_info in relation.entity_infos:
+            # Check the entity exists, this will throw if not
+            relation_data = entity(related_entity_info, library)
+            # Check the target entities have the requested traits if needed
+            if result_trait_set and not _entity_has_trait_set(relation_data, result_trait_set):
+                continue
+            results.append(related_entity_info)
+
+    return results
 
 
 def create_or_update_entity(
@@ -167,6 +206,33 @@ def _library_entity_dict(entity_info: EntityInfo, library: dict):
     """
     entities_dict = library["entities"]
     return entities_dict.get(entity_info.name)
+
+
+def _dict_has_traits(data: dict, traits: dict) -> bool:
+    """
+    Determines if the supplied dict-of-dicts contains the given traits.
+    A match is when all trait ids are present as top level keys in the
+    dict, and any set trait properties exist as child keys with the same
+    value. Additional keys at either level in the data dict are ignored.
+    """
+    for trait_id, trait_data in traits.items():
+        if trait_id not in data:
+            return False
+        for property_key, value in trait_data.items():
+            if data[trait_id].get(property_key) != value:
+                return False
+    return True
+
+
+def _entity_has_trait_set(entity_data: Entity, trait_set: Set[str]) -> bool:
+    """
+    Determines if the supplied entity has the requested trait ids within
+    its trait set.
+    """
+    for trait in trait_set:
+        if trait not in entity_data.traits:
+            return False
+    return True
 
 
 class UnknownBALEntity(RuntimeError):
