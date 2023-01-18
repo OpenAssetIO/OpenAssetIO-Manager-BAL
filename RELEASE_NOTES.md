@@ -1,6 +1,22 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### New features
+
+- Added support for `getRelatedReferences` queries against a BAL
+  library. See `schema.json` for library syntax, there is an additional
+  example in the function's [test library](./tests/resources/library_business_logic_suite_related_references.json).
+  [#17](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/17)
+
+## Improvements
+
+- Improved error messaging for missing entities and malformed entity
+  references - it now contains the relevant string to aid debugging.
+
+
 v1.0.0-alpha.3
 --------------
 

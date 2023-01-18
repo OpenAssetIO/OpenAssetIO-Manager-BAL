@@ -27,12 +27,13 @@ engineering practice".
 import json
 
 from collections import namedtuple
-from typing import Set
+from typing import List, Set, Optional
 from urllib.parse import urlparse
 
 
 EntityInfo = namedtuple("EntityInfo", ("name"), defaults=("",))
-Entity = namedtuple("Entity", ("traits"), defaults=({},))
+Entity = namedtuple("Entity", ("traits", "relations"), defaults=({}, []))
+Relation = namedtuple("Relation", ("traits", "entity_infos"))
 
 
 def make_default_settings() -> dict:
@@ -76,7 +77,7 @@ def parse_entity_ref(entity_ref: str) -> EntityInfo:
     uri_parts = urlparse(entity_ref)
 
     if len(uri_parts.path) <= 1:
-        raise MalformedBALReference("Missing entity name in path component")
+        raise MalformedBALReference("Missing entity name in path component", entity_ref)
 
     # path will start with a /
     name = uri_parts.path[1:]
@@ -97,9 +98,17 @@ def entity(entity_info: EntityInfo, library: dict) -> Entity:
     """
     entity_dict = _library_entity_dict(entity_info, library)
     if entity_dict is None:
-        raise UnknownBALEntity()
+        raise UnknownBALEntity(entity_info)
 
-    return Entity(**entity_dict["versions"][-1])
+    relations = [
+        Relation(
+            traits=relation["traits"],
+            entity_infos=[EntityInfo(name) for name in relation["entities"]],
+        )
+        for relation in entity_dict.get("relations", [])
+    ]
+
+    return Entity(**entity_dict["versions"][-1], relations=relations)
 
 
 def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
@@ -120,6 +129,36 @@ def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
         )
 
     return policy
+
+
+def related_references(
+    entity_info: EntityInfo,
+    requested_relation_traits: dict,
+    result_trait_set: Optional[Set[str]],
+    library: dict,
+) -> List[EntityInfo]:
+    """
+    Retrieves a list of related entities based on the supplied criteria.
+    Relations are un-versioned so will always return an unversioned ref.
+    """
+    results = []
+
+    # Will throw if invalid
+    entity_data = entity(entity_info, library)
+
+    for relation in entity_data.relations:
+        # Check if this relation contains the requested traits
+        if not _dict_has_traits(relation.traits, requested_relation_traits):
+            continue
+        for related_entity_info in relation.entity_infos:
+            # Check the entity exists, this will throw if not
+            relation_data = entity(related_entity_info, library)
+            # Check the target entities have the requested traits if needed
+            if result_trait_set and not _entity_has_trait_set(relation_data, result_trait_set):
+                continue
+            results.append(related_entity_info)
+
+    return results
 
 
 def create_or_update_entity(
@@ -169,15 +208,48 @@ def _library_entity_dict(entity_info: EntityInfo, library: dict):
     return entities_dict.get(entity_info.name)
 
 
-class UnknownBALEntity(Exception):
+def _dict_has_traits(data: dict, traits: dict) -> bool:
+    """
+    Determines if the supplied dict-of-dicts contains the given traits.
+    A match is when all trait ids are present as top level keys in the
+    dict, and any set trait properties exist as child keys with the same
+    value. Additional keys at either level in the data dict are ignored.
+    """
+    for trait_id, trait_data in traits.items():
+        if trait_id not in data:
+            return False
+        for property_key, value in trait_data.items():
+            if data[trait_id].get(property_key) != value:
+                return False
+    return True
+
+
+def _entity_has_trait_set(entity_data: Entity, trait_set: Set[str]) -> bool:
+    """
+    Determines if the supplied entity has the requested trait ids within
+    its trait set.
+    """
+    for trait in trait_set:
+        if trait not in entity_data.traits:
+            return False
+    return True
+
+
+class UnknownBALEntity(RuntimeError):
     """
     An exception raised for a reference to a non-existent entity in the
     library.
     """
 
+    def __init__(self, entity_info: EntityInfo):
+        super().__init__(f"Unknown BAL entity: '{entity_info.name}'")
 
-class MalformedBALReference(Exception):
+
+class MalformedBALReference(RuntimeError):
     """
     An exception raised for a reference that is missing an entity name
     or other required part.
     """
+
+    def __init__(self, message, reference: str):
+        super().__init__(f"Malformed BAL reference: {message} '{reference}'")
