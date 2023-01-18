@@ -97,7 +97,7 @@ def entity(entity_info: EntityInfo, library: dict) -> Entity:
     """
     entity_dict = _library_entity_dict(entity_info, library)
     if entity_dict is None:
-        raise UnknownBALEntity()
+        raise UnknownBALEntity(entity_info)
 
     return Entity(**entity_dict["versions"][-1])
 
@@ -174,6 +174,9 @@ class UnknownBALEntity(RuntimeError):
     An exception raised for a reference to a non-existent entity in the
     library.
     """
+
+    def __init__(self, entity_info: EntityInfo):
+        super().__init__(f"Unknown BAL entity: '{entity_info.name}'")
 
 
 class MalformedBALReference(RuntimeError):

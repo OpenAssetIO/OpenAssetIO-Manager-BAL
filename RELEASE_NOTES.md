@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+## Improvements
+
+- Improved error messaging for missing entities - they now also contain
+  the missing entity's name.
+
+
 v1.0.0-alpha.3
 --------------
 
