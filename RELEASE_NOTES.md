@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v1.0.0-alpha.x
+v1.0.0-alpha.4
 --------------
 
 ### New features
@@ -11,7 +11,7 @@ v1.0.0-alpha.x
   example in the function's [test library](./tests/resources/library_business_logic_suite_related_references.json).
   [#17](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/17)
 
-## Improvements
+### Improvements
 
 - Improved error messaging for missing entities and malformed entity
   references - it now contains the relevant string to aid debugging.
