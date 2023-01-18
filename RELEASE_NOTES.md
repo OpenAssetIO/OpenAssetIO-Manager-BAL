@@ -16,6 +16,8 @@ v1.0.0-alpha.x
 - Improved error messaging for missing entities and malformed entity
   references - it now contains the relevant string to aid debugging.
 
+- Bumped OpenAssetIO version to `v1.0.0a8`.
+
 
 v1.0.0-alpha.3
 --------------
