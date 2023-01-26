@@ -1,6 +1,24 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### New features
+
+- Variables are now expanded in any string properties of an entity's
+  traits. Expansion occurs during resolve to allow for variation in the
+  environment between calls. Note: Only the `$var` and `${var}` syntax
+  is supported. You can escape a literal `$` using `$$`. In addition to
+  the environment, a library can define arbtirary variables under the
+  top level `variables` key. BAL also provides several implicit
+  variables of its own:
+  - `bal_library_path` The absolute path to the current library.
+  - `bal_library_dir` The absolute path to the directory containing the
+     current library.
+  [#22](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/22)
+
+
 v1.0.0-alpha.4
 --------------
 

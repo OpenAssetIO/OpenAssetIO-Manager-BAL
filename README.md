@@ -22,6 +22,13 @@ manager behavior.
 - Resolves references with the `bal:///` prefix to data from a
   pre-configured library of assets stored in a `.json` file.
 
+- Environment variables are expanded in string-type trait property
+  values (using the `$var` or `${var}` syntax, escape `$` using `$$`). A
+  library can also define arbitrary variables of its own under the
+  top-level `variables` key. In addition, BAL provides the built-in
+  `$bal_library_path` and `$bal_library_dir` variables, which can be
+  used to anchor to the current library location.
+
 - The library file to be used is controlled by the `library_path`
   setting, and this should point to a library file with valid content.
 

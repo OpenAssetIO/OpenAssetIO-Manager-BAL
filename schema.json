@@ -5,6 +5,18 @@
   "description": "The data store that backs an instance of the BAL manager",
   "type": "object",
   "properties": {
+    "variables": {
+      "description": "Arbitrary variables to be substituted in string trait properties",
+      "type": "object",
+      "patternProperties": {
+        "[a-zA-Z_]+": {
+          "description": "The value to substitute",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
     "managementPolicy": {
       "description": "Custom managementPolicy responses",
       "type": "object",

@@ -26,6 +26,8 @@ import os
 from openassetio import Context, TraitsData
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
+from unittest import mock
+
 
 __all__ = []
 
@@ -214,6 +216,75 @@ class Test_resolve(FixtureAugmentedTestCase):
                 self.assertTrue(result.hasTrait(trait))
                 for property_, value in self.__entities[ref.toString()][trait].items():
                     self.assertEqual(result.getTraitProperty(trait, property_), value)
+
+
+class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
+
+    _library = "library_business_logic_suite_var_expansion.json"
+
+    @mock.patch.dict(os.environ, {"CUSTOM": "the value from a custom"})
+    def test_when_envvars_set_then_values_expanded_in_string_properties(self):
+        expected = {
+            # Check for consistency with os.path for HOME/UserProfile
+            "HOME": os.path.expandvars("$HOME"),
+            "UserProfile": os.path.expandvars("$UserProfile"),
+            # Check custom vars set after the library was loaded
+            "CUSTOM": "String with the value from a custom var",
+        }
+        data = self.__resolve_to_dict()
+        for key, value in expected.items():
+            self.assertEqual(data[key], value)
+
+    def test_when_envvar_missing_then_value_unchanged_in_string_properties(self):
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["MISSING"], "A $MISSING var")
+
+    def test_when_properties_contain_no_substitutions_then_values_unchanged(self):
+        expected = {"none": "No vars in string", "anInt": 3, "aBool": True}
+        data = self.__resolve_to_dict()
+        for key, value in expected.items():
+            self.assertEqual(data[key], value)
+
+    def test_when_bal_library_path_used_then_expanded_to_library_path(self):
+        expected_path = os.path.join(os.path.dirname(__file__), "resources", self._library)
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["bal_library_path"], f"Library is {expected_path}")
+
+    def test_when_bal_library_dir_used_then_expanded_to_library_directory(self):
+        expected_dir = os.path.join(os.path.dirname(__file__), "resources")
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["bal_library_dir"], f"Library is in {expected_dir}")
+
+    def test_when_custom_library_var_used_then_expanded_to_its_value(self):
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["aLibraryVar"], "Value defined in the JSON")
+
+    def __resolve_to_dict(self):
+        """
+        Grabs the data for a known entity/trait as a dict. We really
+        need to write those convenience methods in the core API!
+        """
+
+        entity_ref = self._manager.createEntityReference("bal:///entity")
+        trait_id = "aTrait"
+
+        data = {}
+
+        def success_cb(_, traits_data):
+            data.update(
+                {
+                    key: traits_data.getTraitProperty(trait_id, key)
+                    for key in traits_data.traitPropertyKeys(trait_id)
+                }
+            )
+
+        def error_cb(_, batchElementError):
+            self.fail(f"Unexpected error:" f" {batchElementError.message}")
+
+        context = self.createTestContext(access=Context.Access.kRead)
+        self._manager.resolve([entity_ref], {trait_id}, context, success_cb, error_cb)
+
+        return data
 
 
 class Test_preflight(FixtureAugmentedTestCase):

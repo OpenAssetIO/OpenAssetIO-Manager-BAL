@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/OpenAssetIO/OpenAssetIO/main/resources/examples/manager/BasicAssetLibrary/schema.json",
+  "variables": {
+    "aLibraryVar": "defined in the JSON"
+  },
+  "entities": {
+    "entity": {
+      "versions": [
+        {
+          "traits": {
+            "aTrait": {
+              "none": "No vars in string",
+              "HOME": "$HOME",
+              "UserProfile": "$UserProfile",
+              "CUSTOM": "String with ${CUSTOM} var",
+              "MISSING": "A $MISSING var",
+              "anInt": 3,
+              "aBool": true,
+              "bal_library_dir": "Library is in $bal_library_dir",
+              "bal_library_path": "Library is ${bal_library_path}",
+              "aLibraryVar": "Value $aLibraryVar"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
