@@ -24,7 +24,10 @@ an asset management system". Consequently, it omits a plethora of "good
 engineering practice".
 """
 
+import copy
 import json
+import os
+import string
 
 from dataclasses import dataclass
 from typing import Dict, List, Set, Optional
@@ -91,12 +94,23 @@ def load_library(path: str) -> dict:
     """
     Loads a library from the supplied path
     """
-    if not path:
-        # Allow an empty path, meaning an empty library.
-        return {}
+    library = {}
 
-    with open(path, "r", encoding="utf-8") as file:
-        return json.load(file)
+    if path:
+        with open(path, "r", encoding="utf-8") as file:
+            library.update(json.load(file))
+        lib_path = os.path.abspath(path)
+        lib_dir = os.path.dirname(lib_path)
+    else:
+        lib_path = ""
+        lib_dir = ""
+
+    # Add our implicit vars on top of any the lib may have defined
+    subs_vars = library.setdefault("variables", {})
+    subs_vars["bal_library_path"] = lib_path
+    subs_vars["bal_library_dir"] = lib_dir
+
+    return library
 
 
 def parse_entity_ref(entity_ref: str) -> EntityInfo:
@@ -137,7 +151,10 @@ def entity(entity_info: EntityInfo, library: dict) -> Entity:
         for relation in entity_dict.get("relations", [])
     ]
 
-    return Entity(**entity_dict["versions"][-1], relations=relations)
+    version_dict = entity_dict["versions"][-1]
+    # Expand vars late to allow more flexibility
+    expanded_version_dict = _copy_and_expand_trait_properties(version_dict, library)
+    return Entity(**expanded_version_dict, relations=relations)
 
 
 def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
@@ -262,6 +279,41 @@ def _entity_has_trait_set(entity_data: Entity, trait_set: Set[str]) -> bool:
         if trait not in entity_data.traits:
             return False
     return True
+
+
+def _copy_and_expand_trait_properties(entity_version_dict: dict, library: dict) -> dict:
+    """
+    Copies the supplied trait version dict, and expands any variables in
+    its trait's string properties. Library variables take precedence
+    over an environment variable of the same name.
+
+    Supports $var and ${var}.
+    """
+    expanded_dict = copy.deepcopy(entity_version_dict)
+
+    for _, trait_data in expanded_dict["traits"].items():
+        for prop, value in trait_data.items():
+            if isinstance(value, str):
+                # On Windows, some iteration methods applied to
+                # os.environ miss out keys:
+                #
+                #   >>> "UserProfile" in os.environ
+                #   True
+                #   >>> "UserProfile" in os.environ.keys()
+                #   True
+                #   >>> "UserProfile" in os.environ.copy()
+                #   False
+                #   >>> "UserProfile" in set(os.environ.keys())
+                #   False
+                #
+                # As such, we need to use the original object, and
+                # append the other vars as kwarg. Fortunately this has
+                # exactly the precedence behaviour we want.
+                trait_data[prop] = string.Template(value).safe_substitute(
+                    os.environ, **library["variables"]
+                )
+
+    return expanded_dict
 
 
 class UnknownBALEntity(RuntimeError):
