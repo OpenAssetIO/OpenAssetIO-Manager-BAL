@@ -26,14 +26,43 @@ engineering practice".
 
 import json
 
-from collections import namedtuple
-from typing import List, Set, Optional
+from dataclasses import dataclass
+from typing import Dict, List, Set, Optional
 from urllib.parse import urlparse
 
 
-EntityInfo = namedtuple("EntityInfo", ("name"), defaults=("",))
-Entity = namedtuple("Entity", ("traits", "relations"), defaults=({}, []))
-Relation = namedtuple("Relation", ("traits", "entity_infos"))
+@dataclass
+class EntityInfo:
+    """
+    Identifies an entity within the BAL library. Convertible to/from
+    OpenAssetIO entity references. Used as a key to look up entity data
+    or describe a newly created entity.
+    """
+
+    name: str
+
+
+@dataclass
+class Entity:
+    """
+    The data for a specific entity in the library, including traits,
+    relations, etc.
+    """
+
+    traits: Dict[str, dict]
+    relations: List[dict]
+
+
+@dataclass
+class Relation:
+    """
+    The definition of a relationship to other entities. The nature of
+    the relation is a traits data dict, accompanied by one or more
+    EntityInfos.
+    """
+
+    traits: Dict[str, Dict]
+    entity_infos: List[EntityInfo]
 
 
 def make_default_settings() -> dict:
