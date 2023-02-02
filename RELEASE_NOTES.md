@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### Bug fixes
+
+- The `$BAL_LIBRARY_PATH` environment variable is now correctly
+  considered when the `library_path` setting is not set/empty.
+  [#26](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/26)
+
+
 v1.0.0-alpha.5
 --------------
 

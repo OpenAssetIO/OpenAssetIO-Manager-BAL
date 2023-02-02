@@ -23,13 +23,17 @@ BasicAssetLibrary manager behaves with the correct business logic.
 import operator
 import os
 
-from openassetio import Context, TraitsData
-from openassetio.test.manager.harness import FixtureAugmentedTestCase
-
 from unittest import mock
+
+from openassetio import Context, TraitsData
+from openassetio.exceptions import PluginError
+from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
 
 __all__ = []
+
+
+LIBRARY_PATH_VARNAME = "BAL_LIBRARY_PATH"
 
 
 class LibraryOverrideTestCase(FixtureAugmentedTestCase):
@@ -56,6 +60,50 @@ class LibraryOverrideTestCase(FixtureAugmentedTestCase):
 
     def cleanUp(self):
         self._manager.initialize(self.__old_settings)
+
+
+class Test_initialize_library_path(FixtureAugmentedTestCase):
+    shareManager = False
+
+    alt_lib_path = os.path.join(os.path.dirname(__file__), "resources", "library_empty.json")
+
+    @mock.patch.dict(os.environ)
+    def test_when_setting_and_env_not_set_then_PluginError_raised(self):
+        if LIBRARY_PATH_VARNAME in os.environ:
+            del os.environ[LIBRARY_PATH_VARNAME]
+        with self.assertRaises(PluginError):
+            self._manager.initialize({})
+
+    @mock.patch.dict(os.environ)
+    def test_when_setting_not_set_and_env_set_then_env_used(self):
+        os.environ[LIBRARY_PATH_VARNAME] = self.alt_lib_path
+        self._manager.initialize({})
+        self.assertEqual(self._manager.settings()["library_path"], self.alt_lib_path)
+
+    @mock.patch.dict(os.environ)
+    def test_when_setting_set_and_env_not_set_then_setting_used(self):
+        if LIBRARY_PATH_VARNAME in os.environ:
+            del os.environ[LIBRARY_PATH_VARNAME]
+        self._manager.initialize({"library_path": self.alt_lib_path})
+        self.assertEqual(self._manager.settings()["library_path"], self.alt_lib_path)
+
+    @mock.patch.dict(os.environ)
+    def test_when_setting_and_env_set_then_setting_used(self):
+        os.environ[LIBRARY_PATH_VARNAME] = "I do not exist"
+        self._manager.initialize({"library_path": self.alt_lib_path})
+        self.assertEqual(self._manager.settings()["library_path"], self.alt_lib_path)
+
+    @mock.patch.dict(os.environ)
+    def test_when_setting_and_env_blank_then_PluginError_raised(self):
+        os.environ[LIBRARY_PATH_VARNAME] = ""
+        with self.assertRaises(PluginError):
+            self._manager.initialize({"library_path": ""})
+
+    @mock.patch.dict(os.environ)
+    def test_when_setting_blank_and_env_set_then_env_used(self):
+        os.environ[LIBRARY_PATH_VARNAME] = self.alt_lib_path
+        self._manager.initialize({"library_path": ""})
+        self.assertEqual(self._manager.settings()["library_path"], self.alt_lib_path)
 
 
 class Test_managementPolicy_missing_completely(LibraryOverrideTestCase):
@@ -219,7 +267,6 @@ class Test_resolve(FixtureAugmentedTestCase):
 
 
 class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
-
     _library = "library_business_logic_suite_var_expansion.json"
 
     @mock.patch.dict(os.environ, {"CUSTOM": "the value from a custom"})
@@ -391,7 +438,6 @@ class Test_register(FixtureAugmentedTestCase):
 
 
 class Test_getRelatedRefrences(LibraryOverrideTestCase):
-
     # @TODO(tc) Switch to fixtures once covered by the OpenAssetIO
     # apiComplianceSuite as this should really be tested there. This
     # will be added when the C++ port happens along with the switch to

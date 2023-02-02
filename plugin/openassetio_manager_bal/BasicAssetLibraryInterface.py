@@ -72,28 +72,34 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     def initialize(self, managerSettings, hostSession):
         bal.validate_settings(managerSettings)
-        self.__settings.update(managerSettings)
 
-        self.__library = {}
+        # Settings updates can be partial, so make sure we keep any
+        # existing path.
+        existing_library_path = self.__settings.get("library_path")
+        library_path = managerSettings.get("library_path", existing_library_path)
 
-        if self.__settings.get("library_path") is None:
+        if not library_path:
             hostSession.logger().log(
                 hostSession.logger().Severity.kDebug,
-                f"'library_path' not in settings, checking {self.__lib_path_envvar_name}",
+                "'library_path' not in settings or is empty, checking "
+                f"{self.__lib_path_envvar_name}",
             )
-            self.__settings["library_path"] = os.environ.get(self.__lib_path_envvar_name)
+            library_path = os.environ.get(self.__lib_path_envvar_name)
 
-        if self.__settings.get("library_path") is None:
-            raise PluginError("'library_path' not set")
+        if not library_path:
+            raise PluginError(f"'library_path'/{self.__lib_path_envvar_name} not set or is empty")
 
+        self.__settings.update(managerSettings)
+        self.__settings["library_path"] = library_path
+
+        self.__library = {}
         hostSession.logger().log(
             hostSession.logger().Severity.kDebug,
-            f"Loading library from {self.__settings['library_path']}",
+            f"Loading library from '{library_path}'",
         )
-        self.__library = bal.load_library(self.__settings["library_path"])
+        self.__library = bal.load_library(library_path)
 
     def managementPolicy(self, traitSets, context, hostSession):
-
         access = "read" if context.isForRead() else "write"
         return [
             self.__dict_to_traits_data(bal.management_policy(trait_set, access, self.__library))
