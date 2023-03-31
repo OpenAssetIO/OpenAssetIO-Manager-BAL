@@ -10,7 +10,6 @@ v1.0.0-alpha.6
   considered when the `library_path` setting is not set/empty.
   [#26](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/26)
 
-
 v1.0.0-alpha.5
 --------------
 
@@ -27,7 +26,6 @@ v1.0.0-alpha.5
   - `bal_library_dir` The absolute path to the directory containing the
      current library.
   [#22](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/22)
-
 
 v1.0.0-alpha.4
 --------------
@@ -46,7 +44,6 @@ v1.0.0-alpha.4
 
 - Bumped OpenAssetIO version to `v1.0.0a8`.
 
-
 v1.0.0-alpha.3
 --------------
 
@@ -58,7 +55,6 @@ v1.0.0-alpha.3
   library, then the JSON schema requires both `read.default` and
   `write.default` policies to be defined.
   [#6](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/6)
-
 
 v1.0.0-alpha.2
 --------------
@@ -79,7 +75,6 @@ v1.0.0-alpha.2
 
 - Updated the JSON schema for `managementPolicy` to properly disallow
   unsupported properties and to support a `write` policy.
-
 
 v1.0.0-alpha.1
 --------------
