@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+v1.0.0-alpha.X
+--------------
+
+### Improvements
+
+- Moved `openassetio` dependency out of python project
+  (`pyproject.toml`) and instead have it as a `requirements.txt`
+  dependency. OpenAssetIO should be provided by the environment, and BAL
+  enforcing this as part of its install led to inflexibility.
+  [#31](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/31)
+
 v1.0.0-alpha.6
 --------------
 
