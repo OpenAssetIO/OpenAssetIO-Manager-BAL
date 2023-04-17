@@ -47,6 +47,10 @@ a checkout of the [source repository](https://github.com/OpenAssetIO/OpenAssetIO
 The plugin provides a manager with the identifier
 `org.openassetio.examples.manager.bal`.
 
+```bash
+python -m pip install openassetio-manager-bal
+```
+
 ## Library file format
 
 A [JSON Schema](https://json-schema.org) is provided
