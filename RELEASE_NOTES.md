@@ -4,6 +4,11 @@ Release Notes
 v1.0.0-alpha.X
 --------------
 
+### Breaking Changes
+
+- Minimum OpenAssetIO version increased to `v1.0.0-alpha.11` due to API
+  change.
+
 ### Improvements
 
 - Moved `openassetio` dependency out of python project
