@@ -1,1 +1,1 @@
-openassetio == 1.0.0a9
+openassetio @ https://github.com/OpenAssetIO/OpenAssetIO/archive/refs/heads/feature/relatedReferencesRefactor.zip
