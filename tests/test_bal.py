@@ -36,6 +36,7 @@ import pytest
 
 # pylint: disable=invalid-name,redefined-outer-name
 # pylint: disable=missing-class-docstring,missing-function-docstring
+# pylint: disable=too-few-public-methods
 
 from openassetio.test.manager import harness, apiComplianceSuite
 from openassetio.pluginSystem import PythonPluginSystemManagerPlugin
