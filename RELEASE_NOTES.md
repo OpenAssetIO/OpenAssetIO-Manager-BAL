@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+v1.0.0-alpha.X
+--------------
+
+### New Features
+
+- Added capability to artificially delay `resolve`, `preflight`,
+  `entityExists`, `register` and `getRelatedReferences` in order to
+  better simulate real-world workflows and better test scalability. New
+  setting `simulated_query_latency_ms` added, defaulting to 10ms.
+  [#38](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/38)
+
 v1.0.0-alpha.7
 --------------
 
