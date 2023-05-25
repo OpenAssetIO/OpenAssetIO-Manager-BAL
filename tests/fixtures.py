@@ -54,7 +54,7 @@ some_registerable_traitsdata.setTraitProperty("trait2", "count", 4)
 
 fixtures = {
     "identifier": IDENTIFIER,
-    "settings": {"library_path": test_library_path},
+    "settings": {"library_path": test_library_path, "simulated_query_latency_ms": 1},
     "shared": {
         "a_valid_reference": VALID_REF,
         "an_invalid_reference": NON_REF,

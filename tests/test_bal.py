@@ -62,6 +62,11 @@ class Test_BasicAssetLibrary:
     def test_passes_bal_business_logic_suite(self, bal_business_logic_suite, harness_fixtures):
         assert harness.executeSuite(bal_business_logic_suite, harness_fixtures)
 
+    def test_passes_functional_behaviour_suite(
+        self, bal_functional_behaviour_suite, harness_fixtures
+    ):
+        assert harness.executeSuite(bal_functional_behaviour_suite, harness_fixtures)
+
 
 class Test_BasicAssetLibrary_Plugin:
     def test_exposes_plugin_attribute_with_correct_type(self):
@@ -73,4 +78,10 @@ class Test_BasicAssetLibrary_Plugin:
 @pytest.fixture
 def bal_business_logic_suite(bal_base_dir):
     module_path = os.path.join(bal_base_dir, "tests", "bal_business_logic_suite.py")
+    return harness.moduleFromFile(module_path)
+
+
+@pytest.fixture
+def bal_functional_behaviour_suite(bal_base_dir):
+    module_path = os.path.join(bal_base_dir, "tests", "bal_functional_behaviour_suite.py")
     return harness.moduleFromFile(module_path)
