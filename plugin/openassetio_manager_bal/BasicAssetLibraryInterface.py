@@ -20,7 +20,6 @@
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
 
-import itertools
 import os
 import time
 
