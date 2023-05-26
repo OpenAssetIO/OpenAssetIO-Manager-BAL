@@ -3,7 +3,7 @@
 
 [project]
 name = "openassetio-manager-bal"
-version = "1.0.0a6"
+version = "1.0.0a8"
 requires-python = ">=3.7"
 
 authors = [

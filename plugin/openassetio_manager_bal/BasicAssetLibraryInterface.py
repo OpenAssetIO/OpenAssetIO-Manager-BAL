@@ -22,7 +22,9 @@ A single-class module, providing the BasicAssetLibraryInterface class.
 
 import itertools
 import os
+import time
 
+from functools import wraps
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface
@@ -41,6 +43,20 @@ __all__ = [
 # Methods in C++ end up with "missing docstring"
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-arguments, unused-argument
+
+
+def simulated_delay(func):
+    @wraps(func)
+    def wrapper_simulated_delay(self, *args, **kwargs):
+        # pylint: disable=protected-access
+        delay_ms = self._BasicAssetLibraryInterface__settings.get(
+            bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0
+        )
+        if delay_ms > 0:
+            time.sleep(delay_ms / 1000.0)  # sleep takes seconds
+        return func(self, *args, **kwargs)
+
+    return wrapper_simulated_delay
 
 
 class BasicAssetLibraryInterface(ManagerInterface):
@@ -99,6 +115,12 @@ class BasicAssetLibraryInterface(ManagerInterface):
         )
         self.__library = bal.load_library(library_path)
 
+        hostSession.logger().log(
+            hostSession.logger().Severity.kDebug,
+            f"Running with simulated query latency of "
+            f"{self.__settings[bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
+        )
+
     def managementPolicy(self, traitSets, context, hostSession):
         access = "read" if context.isForRead() else "write"
         return [
@@ -109,6 +131,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def isEntityReferenceString(self, someString, hostSession):
         return someString.startswith(self.__reference_prefix)
 
+    @simulated_delay
     def entityExists(self, entityRefs, context, hostSession):
         results = []
         for ref in entityRefs:
@@ -120,6 +143,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             results.append(result)
         return results
 
+    @simulated_delay
     def resolve(
         self, entityReferences, traitSet, context, hostSession, successCallback, errorCallback
     ):
@@ -157,6 +181,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
                     successCallback(idx, result)
 
+    @simulated_delay
     def preflight(
         self, targetEntityRefs, traitSet, context, hostSession, successCallback, errorCallback
     ):
@@ -172,6 +197,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             else:
                 successCallback(idx, ref)
 
+    @simulated_delay
     def register(
         self,
         targetEntityRefs,
@@ -196,6 +222,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 )
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
 
+    @simulated_delay
     def getWithRelationship(
         self, relationshipTraitsData, entityReferences, context, hostSession, resultTraitSet=None
     ):
@@ -214,6 +241,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
         return results
 
+    @simulated_delay
     def getWithRelationships(
         self, relationshipTraitsDatas, entityReference, context, hostSession, resultTraitSet=None
     ):

@@ -28,6 +28,7 @@ jobs:
           # Use wheels from feature branch for intermediate testing
           python -m pip install ./deps/openassetio-*cp39*-manylinux_*_x86_64.whl
           # python -m pip install -r requirements.txt
+          python -m pip install -r tests/requirements.txt
           python -m pip install .
 
       - name: Lint

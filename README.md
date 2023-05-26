@@ -38,6 +38,13 @@ manager behavior.
 - Persists newly registered data in-memory (the original library JSON is
   not updated).
 
+- Simulate network delay with the `simulated_query_latency_ms` setting.
+  > **Note**
+  >
+  > Pythons [time.sleep](https://docs.python.org/3/library/time.html#time.sleep)
+  > is the mechanism by which the delay is triggered.
+  > Simulated query latency defaults to 10ms.
+
 ## Installation
 
 To use the plugin in an OpenAssetIO host, install via `pip`, or set (or append) the
