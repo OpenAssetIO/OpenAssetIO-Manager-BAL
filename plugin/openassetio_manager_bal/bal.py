@@ -338,7 +338,7 @@ class UnknownBALEntity(RuntimeError):
     """
 
     def __init__(self, entity_info: EntityInfo):
-        super().__init__(f"Unknown BAL entity: '{entity_info.name}'")
+        super().__init__(f"Entity '{entity_info.name}' not found")
 
 
 class MalformedBALReference(RuntimeError):
