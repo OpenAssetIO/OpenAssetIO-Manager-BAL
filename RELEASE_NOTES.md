@@ -1,13 +1,16 @@
 Release Notes
 =============
 
-v1.0.0-alpha.X
---------------
+feature/relatedReferencesRefactor
+---------------------------------
 
 ### Breaking Changes
 
-- Minimum OpenAssetIO version increased to `v1.0.0-alpha.11` due to API
-  change.
+- Minimum OpenAssetIO version increased to `v1.0.0-alpha.12` due to API
+  changes.
+
+v1.0.0-alpha.x
+--------------
 
 ### Improvements
 
