@@ -203,41 +203,51 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     @simulated_delay
     def getWithRelationship(
-        self, relationshipTraitsData, entityReferences, context, hostSession, resultTraitSet=None
+        self,
+        relationshipTraitsData,
+        entityReferences,
+        context,
+        hostSession,
+        successCallback,
+        errorCallback,
+        resultTraitSet=None,
     ):
-        results = []
-
-        for entity_ref in entityReferences:
-            entity_info = bal.parse_entity_ref(entity_ref.toString())
-            relations = bal.related_references(
-                entity_info,
-                self.__traits_data_to_dict(relationshipTraitsData),
-                resultTraitSet,
-                self.__library,
-            )
-            # Convert the EntityInfos to entity references
-            results.append([self.__build_entity_ref(i) for i in relations])
-
-        return results
+        for idx, entity_ref in enumerate(entityReferences):
+            try:
+                entity_info = bal.parse_entity_ref(entity_ref.toString())
+                relations = bal.related_references(
+                    entity_info,
+                    self.__traits_data_to_dict(relationshipTraitsData),
+                    resultTraitSet,
+                    self.__library,
+                )
+                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
     @simulated_delay
     def getWithRelationships(
-        self, relationshipTraitsDatas, entityReference, context, hostSession, resultTraitSet=None
+        self,
+        relationshipTraitsDatas,
+        entityReference,
+        context,
+        hostSession,
+        successCallback,
+        errorCallback,
+        resultTraitSet=None,
     ):
-        results = []
-
-        for relationship in relationshipTraitsDatas:
-            entity_info = bal.parse_entity_ref(entityReference.toString())
-            relations = bal.related_references(
-                entity_info,
-                self.__traits_data_to_dict(relationship),
-                resultTraitSet,
-                self.__library,
-            )
-            # Convert the EntityInfos to entity references
-            results.append([self.__build_entity_ref(i) for i in relations])
-
-        return results
+        for idx, relationship in enumerate(relationshipTraitsDatas):
+            try:
+                entity_info = bal.parse_entity_ref(entityReference.toString())
+                relations = bal.related_references(
+                    entity_info,
+                    self.__traits_data_to_dict(relationship),
+                    resultTraitSet,
+                    self.__library,
+                )
+                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """

@@ -95,7 +95,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
     ):
         entity_refs = self.create_test_entity_references()
 
-        self.__check_simulated_latencies_without_callbacks(
+        self.__check_simulated_latencies_with_callbacks(
             self._manager.getWithRelationship,
             TraitsData(),
             entity_refs,
@@ -108,7 +108,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         entity_ref = self.create_test_entity_references()[0]
         traits_datas = [TraitsData()] * 3
 
-        self.__check_simulated_latencies_without_callbacks(
+        self.__check_simulated_latencies_with_callbacks(
             self._manager.getWithRelationships,
             traits_datas,
             entity_ref,
