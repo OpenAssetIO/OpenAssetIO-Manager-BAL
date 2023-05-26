@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### Breaking Changes
+
+- Refactored error handling. `BatchElementError` messages have been
+  reformatted when a referenced entity is missing from the library.
+
 v1.0.0-alpha.8
 --------------
 

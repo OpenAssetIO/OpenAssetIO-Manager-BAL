@@ -157,28 +157,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, ref in enumerate(entityReferences):
             try:
                 entity_info = bal.parse_entity_ref(ref.toString())
-            except bal.MalformedBALReference as exc:
-                result = BatchElementError(
-                    BatchElementError.ErrorCode.kMalformedEntityReference, str(exc)
-                )
-                errorCallback(idx, result)
-            else:
-                try:
-                    entity = bal.entity(entity_info, self.__library)
-                except bal.UnknownBALEntity:
-                    result = BatchElementError(
-                        BatchElementError.ErrorCode.kEntityResolutionError,
-                        f"Entity '{ref.toString()}' not found",
-                    )
-                    errorCallback(idx, result)
-                else:
-                    result = TraitsData()
-                    for trait in traitSet:
-                        trait_data = entity.traits.get(trait)
-                        if trait_data is not None:
-                            self.__add_trait_to_traits_data(trait, trait_data, result)
-
-                    successCallback(idx, result)
+                entity = bal.entity(entity_info, self.__library)
+                result = TraitsData()
+                for trait in traitSet:
+                    trait_data = entity.traits.get(trait)
+                    if trait_data is not None:
+                        self.__add_trait_to_traits_data(trait, trait_data, result)
+                successCallback(idx, result)
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
     @simulated_delay
     def preflight(
@@ -188,13 +175,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, ref in enumerate(targetEntityRefs):
             try:
                 bal.parse_entity_ref(ref.toString())
-            except bal.MalformedBALReference as exc:
-                result = BatchElementError(
-                    BatchElementError.ErrorCode.kMalformedEntityReference, str(exc)
-                )
-                errorCallback(idx, result)
-            else:
                 successCallback(idx, ref)
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
     @simulated_delay
     def register(
@@ -209,17 +192,13 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, ref in enumerate(targetEntityRefs):
             try:
                 entity_info = bal.parse_entity_ref(ref.toString())
-            except bal.MalformedBALReference as exc:
-                result = BatchElementError(
-                    BatchElementError.ErrorCode.kMalformedEntityReference, str(exc)
-                )
-                errorCallback(idx, result)
-            else:
                 traits_dict = self.__traits_data_to_dict(entityTraitsDatas[idx])
                 updated_entity_info = bal.create_or_update_entity(
                     entity_info, traits_dict, self.__library
                 )
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
     @simulated_delay
     def getRelatedReferences(
@@ -277,3 +256,22 @@ class BasicAssetLibraryInterface(ManagerInterface):
         traits_data.addTrait(trait_id)
         for name, value in trait_properties.items():
             traits_data.setTraitProperty(trait_id, name, value)
+
+    @staticmethod
+    def __handle_exception(exc, idx, error_callback):
+        """
+        Calls the error_callback with an appropriate BatchElementError
+        depending on the caught exception.
+
+        Other, exceptional exceptions are re-thrown.
+        """
+        msg = str(exc)
+
+        if isinstance(exc, bal.MalformedBALReference):
+            code = BatchElementError.ErrorCode.kMalformedEntityReference
+        elif isinstance(exc, bal.UnknownBALEntity):
+            code = BatchElementError.ErrorCode.kEntityResolutionError
+        else:
+            raise exc
+
+        error_callback(idx, BatchElementError(code, msg))
