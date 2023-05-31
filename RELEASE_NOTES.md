@@ -1,13 +1,30 @@
 Release Notes
 =============
 
-v1.0.0-alpha.X
---------------
+feature/relatedReferencesRefactor
+---------------------------------
 
 ### Breaking Changes
 
-- Minimum OpenAssetIO version increased to `v1.0.0-alpha.11` due to API
-  change.
+- Minimum OpenAssetIO version increased to `v1.0.0-alpha.12` due to API
+  changes.
+
+- Refactored error handling. `BatchElementError` messages have been
+  reformatted when a referenced entity is missing from the library.
+
+v1.0.0-alpha.8
+--------------
+
+### New Features
+
+- Added capability to artificially delay `resolve`, `preflight`,
+  `entityExists`, `register` and `getRelatedReferences` in order to
+  better simulate real-world workflows and better test scalability. New
+  setting `simulated_query_latency_ms` added, defaulting to 10ms.
+  [#38](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/38)
+
+v1.0.0-alpha.7
+--------------
 
 ### Improvements
 

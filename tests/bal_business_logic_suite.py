@@ -25,7 +25,7 @@ import os
 
 from unittest import mock
 
-from openassetio import Context, TraitsData
+from openassetio import BatchElementError, Context, TraitsData
 from openassetio.exceptions import PluginError
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
@@ -463,13 +463,19 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
             "bal:///entity/proxy/3",
         )
 
-        result = self._manager.getWithRelationship(
+        result_refs = [None]
+
+        self._manager.getWithRelationship(
             self._proxy_relation,
             self.__refs("bal:///entity/original"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationship should not error: {err.code} {err.message}"
+            ),
         )
 
-        self.assertEqual(result, [expected_refs])
+        self.assertEqual(result_refs, [expected_refs])
 
     def test_when_called_with_relation_properties_then_only_those_matching_traits_data_returned(
         self,
@@ -479,25 +485,37 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
         filtered_proxy_relation = TraitsData(self._proxy_relation)
         filtered_proxy_relation.setTraitProperty(self._proxy_trait_id, "type", "alt")
 
-        result = self._manager.getWithRelationship(
+        result_refs = [None]
+
+        self._manager.getWithRelationship(
             filtered_proxy_relation,
             self.__refs("bal:///entity/original"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationship should not error: {err.code} {err.message}"
+            ),
         )
 
-        self.assertEqual(result, [expected_refs])
+        self.assertEqual(result_refs, [expected_refs])
 
     def test_when_resultTraitSet_specified_then_only_those_containing_trait_set_returned(self):
         expected_refs = self.__refs("bal:///entity/proxy/2", "bal:///entity/proxy/3")
 
-        result = self._manager.getWithRelationship(
+        result_refs = [None]
+
+        self._manager.getWithRelationship(
             self._proxy_relation,
             self.__refs("bal:///entity/original"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationship should not error: {err.code} {err.message}"
+            ),
             resultTraitSet={"b"},
         )
 
-        self.assertEqual(result, [expected_refs])
+        self.assertEqual(result_refs, [expected_refs])
 
     def test_when_multiple_refs_supplied_then_order_of_result_is_correct(self):
         expected_refs = [
@@ -505,33 +523,53 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
             [],
         ]
 
-        result = self._manager.getWithRelationship(
+        result_refs = [None] * len(expected_refs)
+
+        self._manager.getWithRelationship(
             self._proxy_relation,
             self.__refs("bal:///entity/original", "bal:///entity/source"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationship should not error: {err.code} {err.message}"
+            ),
         )
 
-        self.assertEqual(result, expected_refs)
+        self.assertEqual(result_refs, expected_refs)
 
-    def test_when_relation_not_in_library_then_exception_raised(self):
-        with self.assertRaises(RuntimeError) as ex:
-            self._manager.getWithRelationship(
-                TraitsData({"missing"}),
-                self.__refs("bal:///entity/original"),
-                self.createTestContext(access=Context.Access.kRead),
-            )
-        self.assertEqual(str(ex.exception), "Unknown BAL entity: 'missingEntity'")
+    def test_when_relation_not_in_library_then_error_callback_called_with_expected_error(self):
+        expected_error = BatchElementError(
+            BatchElementError.ErrorCode.kEntityResolutionError,
+            "Entity 'missingEntity' not found",
+        )
+
+        def check_error(idx, error):
+            self.assertEqual(idx, 0)
+            self.assertEqual(error, expected_error)
+
+        self._manager.getWithRelationship(
+            TraitsData({"missing"}),
+            self.__refs("bal:///entity/original"),
+            self.createTestContext(access=Context.Access.kRead),
+            lambda _, __: self.fail("getWithRelationship should fail"),
+            check_error,
+        )
 
 
 class Test_getWithRelationship_relations_data_missing(FixtureAugmentedTestCase):
     def test_when_library_missing_relations_data_then_empty_result_is_returned(self):
         # The standard library has no relations data
-        result = self._manager.getWithRelationship(
+        result_refs = [None]
+        self._manager.getWithRelationship(
             TraitsData({"someTrait"}),
             [self._manager.createEntityReference("bal:///another 𝓐𝓼𝓼𝓼𝓮𝔱")],
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationship should not error: {err.code} {err.message}"
+            ),
         )
-        self.assertEqual(result, [[]])
+        self.assertEqual(result_refs, [[]])
 
 
 class Test_getWithRelationships(LibraryOverrideTestCase):
@@ -560,13 +598,19 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
             "bal:///entity/proxy/3",
         )
 
-        result = self._manager.getWithRelationships(
+        result_refs = [None]
+
+        self._manager.getWithRelationships(
             [self._proxy_relation],
             self._manager.createEntityReference("bal:///entity/original"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationships should not error: {err.code} {err.message}"
+            ),
         )
 
-        self.assertEqual(result, [expected_refs])
+        self.assertEqual(result_refs, [expected_refs])
 
     def test_when_called_with_relation_properties_then_only_those_matching_traits_data_returned(
         self,
@@ -576,25 +620,37 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
         filtered_proxy_relation = TraitsData(self._proxy_relation)
         filtered_proxy_relation.setTraitProperty(self._proxy_trait_id, "type", "alt")
 
-        result = self._manager.getWithRelationships(
+        result_refs = [None]
+
+        self._manager.getWithRelationships(
             [filtered_proxy_relation],
             self._manager.createEntityReference("bal:///entity/original"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationships should not error: {err.code} {err.message}"
+            ),
         )
 
-        self.assertEqual(result, [expected_refs])
+        self.assertEqual(result_refs, [expected_refs])
 
     def test_when_resultTraitSet_specified_then_only_those_containing_trait_set_returned(self):
         expected_refs = self.__refs("bal:///entity/proxy/2", "bal:///entity/proxy/3")
 
-        result = self._manager.getWithRelationships(
+        result_refs = [None]
+
+        self._manager.getWithRelationships(
             [self._proxy_relation],
             self._manager.createEntityReference("bal:///entity/original"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationships should not error: {err.code} {err.message}"
+            ),
             resultTraitSet={"b"},
         )
 
-        self.assertEqual(result, [expected_refs])
+        self.assertEqual(result_refs, [expected_refs])
 
     def test_when_multiple_relations_supplied_then_ordering_is_correct(self):
         expected_refs = [
@@ -602,30 +658,50 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
             self.__refs("bal:///entity/source"),
         ]
 
-        result = self._manager.getWithRelationships(
+        result_refs = [None] * len(expected_refs)
+
+        self._manager.getWithRelationships(
             [self._proxy_relation, TraitsData({self._source_trait_id})],
             self._manager.createEntityReference("bal:///entity/original"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationships should not error: {err.code} {err.message}"
+            ),
         )
 
-        self.assertEqual(result, expected_refs)
+        self.assertEqual(result_refs, expected_refs)
 
-    def test_when_relation_not_in_library_then_exception_raised(self):
-        with self.assertRaises(RuntimeError) as ex:
-            self._manager.getWithRelationships(
-                [TraitsData({"missing"})],
-                self._manager.createEntityReference("bal:///entity/original"),
-                self.createTestContext(access=Context.Access.kRead),
-            )
-        self.assertEqual(str(ex.exception), "Unknown BAL entity: 'missingEntity'")
+    def test_when_relation_not_in_library_then_error_callback_called_with_expected_error(self):
+        expected_error = BatchElementError(
+            BatchElementError.ErrorCode.kEntityResolutionError,
+            "Entity 'missingEntity' not found",
+        )
+
+        def check_error(idx, error):
+            self.assertEqual(idx, 0)
+            self.assertEqual(error, expected_error)
+
+        self._manager.getWithRelationships(
+            [TraitsData({"missing"})],
+            self._manager.createEntityReference("bal:///entity/original"),
+            self.createTestContext(access=Context.Access.kRead),
+            lambda _, __: self.fail("getWithRelationships should fail"),
+            check_error,
+        )
 
 
 class Test_getWithRelationships_relations_data_missing(FixtureAugmentedTestCase):
     def test_when_library_missing_relations_data_then_empty_result_is_returned(self):
         # The standard library has no relations data
-        result = self._manager.getWithRelationships(
+        result_refs = [None]
+        self._manager.getWithRelationships(
             [TraitsData({"someTrait"})],
             self._manager.createEntityReference("bal:///another 𝓐𝓼𝓼𝓼𝓮𝔱"),
             self.createTestContext(access=Context.Access.kRead),
+            lambda idx, refs: operator.setitem(result_refs, idx, refs),
+            lambda _, err: self.fail(
+                f"getWithRelationships should not error: {err.code} {err.message}"
+            ),
         )
-        self.assertEqual(result, [[]])
+        self.assertEqual(result_refs, [[]])

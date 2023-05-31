@@ -54,7 +54,7 @@ some_registerable_traitsdata.setTraitProperty("trait2", "count", 4)
 
 fixtures = {
     "identifier": IDENTIFIER,
-    "settings": {"library_path": test_library_path},
+    "settings": {"library_path": test_library_path, "simulated_query_latency_ms": 1},
     "shared": {
         "a_valid_reference": VALID_REF,
         "an_invalid_reference": NON_REF,
@@ -90,7 +90,7 @@ fixtures = {
             "the_error_string_for_a_reference_to_a_readonly_entity": "BAL entities are read-only",
             "a_reference_to_a_missing_entity": "bal:///missing_entity",
             "the_error_string_for_a_reference_to_a_missing_entity": (
-                "Entity 'bal:///missing_entity' not found"
+                "Entity 'missing_entity' not found"
             ),
             "a_malformed_reference": MALFORMED_REF,
             "the_error_string_for_a_malformed_reference": (

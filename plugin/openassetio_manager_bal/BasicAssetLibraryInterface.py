@@ -20,9 +20,10 @@
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
 
-import itertools
 import os
+import time
 
+from functools import wraps
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface
@@ -41,6 +42,20 @@ __all__ = [
 # Methods in C++ end up with "missing docstring"
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-arguments, unused-argument
+
+
+def simulated_delay(func):
+    @wraps(func)
+    def wrapper_simulated_delay(self, *args, **kwargs):
+        # pylint: disable=protected-access
+        delay_ms = self._BasicAssetLibraryInterface__settings.get(
+            bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0
+        )
+        if delay_ms > 0:
+            time.sleep(delay_ms / 1000.0)  # sleep takes seconds
+        return func(self, *args, **kwargs)
+
+    return wrapper_simulated_delay
 
 
 class BasicAssetLibraryInterface(ManagerInterface):
@@ -99,6 +114,12 @@ class BasicAssetLibraryInterface(ManagerInterface):
         )
         self.__library = bal.load_library(library_path)
 
+        hostSession.logger().log(
+            hostSession.logger().Severity.kDebug,
+            f"Running with simulated query latency of "
+            f"{self.__settings[bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
+        )
+
     def managementPolicy(self, traitSets, context, hostSession):
         access = "read" if context.isForRead() else "write"
         return [
@@ -109,6 +130,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def isEntityReferenceString(self, someString, hostSession):
         return someString.startswith(self.__reference_prefix)
 
+    @simulated_delay
     def entityExists(self, entityRefs, context, hostSession):
         results = []
         for ref in entityRefs:
@@ -120,6 +142,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             results.append(result)
         return results
 
+    @simulated_delay
     def resolve(
         self, entityReferences, traitSet, context, hostSession, successCallback, errorCallback
     ):
@@ -134,29 +157,17 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, ref in enumerate(entityReferences):
             try:
                 entity_info = bal.parse_entity_ref(ref.toString())
-            except bal.MalformedBALReference as exc:
-                result = BatchElementError(
-                    BatchElementError.ErrorCode.kMalformedEntityReference, str(exc)
-                )
-                errorCallback(idx, result)
-            else:
-                try:
-                    entity = bal.entity(entity_info, self.__library)
-                except bal.UnknownBALEntity:
-                    result = BatchElementError(
-                        BatchElementError.ErrorCode.kEntityResolutionError,
-                        f"Entity '{ref.toString()}' not found",
-                    )
-                    errorCallback(idx, result)
-                else:
-                    result = TraitsData()
-                    for trait in traitSet:
-                        trait_data = entity.traits.get(trait)
-                        if trait_data is not None:
-                            self.__add_trait_to_traits_data(trait, trait_data, result)
+                entity = bal.entity(entity_info, self.__library)
+                result = TraitsData()
+                for trait in traitSet:
+                    trait_data = entity.traits.get(trait)
+                    if trait_data is not None:
+                        self.__add_trait_to_traits_data(trait, trait_data, result)
+                successCallback(idx, result)
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
-                    successCallback(idx, result)
-
+    @simulated_delay
     def preflight(
         self, targetEntityRefs, traitSet, context, hostSession, successCallback, errorCallback
     ):
@@ -164,14 +175,11 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, ref in enumerate(targetEntityRefs):
             try:
                 bal.parse_entity_ref(ref.toString())
-            except bal.MalformedBALReference as exc:
-                result = BatchElementError(
-                    BatchElementError.ErrorCode.kMalformedEntityReference, str(exc)
-                )
-                errorCallback(idx, result)
-            else:
                 successCallback(idx, ref)
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
+    @simulated_delay
     def register(
         self,
         targetEntityRefs,
@@ -184,53 +192,61 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, ref in enumerate(targetEntityRefs):
             try:
                 entity_info = bal.parse_entity_ref(ref.toString())
-            except bal.MalformedBALReference as exc:
-                result = BatchElementError(
-                    BatchElementError.ErrorCode.kMalformedEntityReference, str(exc)
-                )
-                errorCallback(idx, result)
-            else:
                 traits_dict = self.__traits_data_to_dict(entityTraitsDatas[idx])
                 updated_entity_info = bal.create_or_update_entity(
                     entity_info, traits_dict, self.__library
                 )
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
+    @simulated_delay
     def getWithRelationship(
-        self, relationshipTraitsData, entityReferences, context, hostSession, resultTraitSet=None
+        self,
+        relationshipTraitsData,
+        entityReferences,
+        context,
+        hostSession,
+        successCallback,
+        errorCallback,
+        resultTraitSet=None,
     ):
-        results = []
+        for idx, entity_ref in enumerate(entityReferences):
+            try:
+                entity_info = bal.parse_entity_ref(entity_ref.toString())
+                relations = bal.related_references(
+                    entity_info,
+                    self.__traits_data_to_dict(relationshipTraitsData),
+                    resultTraitSet,
+                    self.__library,
+                )
+                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
-        for entity_ref in entityReferences:
-            entity_info = bal.parse_entity_ref(entity_ref.toString())
-            relations = bal.related_references(
-                entity_info,
-                self.__traits_data_to_dict(relationshipTraitsData),
-                resultTraitSet,
-                self.__library,
-            )
-            # Convert the EntityInfos to entity references
-            results.append([self.__build_entity_ref(i) for i in relations])
-
-        return results
-
+    @simulated_delay
     def getWithRelationships(
-        self, relationshipTraitsDatas, entityReference, context, hostSession, resultTraitSet=None
+        self,
+        relationshipTraitsDatas,
+        entityReference,
+        context,
+        hostSession,
+        successCallback,
+        errorCallback,
+        resultTraitSet=None,
     ):
-        results = []
-
-        for relationship in relationshipTraitsDatas:
-            entity_info = bal.parse_entity_ref(entityReference.toString())
-            relations = bal.related_references(
-                entity_info,
-                self.__traits_data_to_dict(relationship),
-                resultTraitSet,
-                self.__library,
-            )
-            # Convert the EntityInfos to entity references
-            results.append([self.__build_entity_ref(i) for i in relations])
-
-        return results
+        for idx, relationship in enumerate(relationshipTraitsDatas):
+            try:
+                entity_info = bal.parse_entity_ref(entityReference.toString())
+                relations = bal.related_references(
+                    entity_info,
+                    self.__traits_data_to_dict(relationship),
+                    resultTraitSet,
+                    self.__library,
+                )
+                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
@@ -261,3 +277,22 @@ class BasicAssetLibraryInterface(ManagerInterface):
         traits_data.addTrait(trait_id)
         for name, value in trait_properties.items():
             traits_data.setTraitProperty(trait_id, name, value)
+
+    @staticmethod
+    def __handle_exception(exc, idx, error_callback):
+        """
+        Calls the error_callback with an appropriate BatchElementError
+        depending on the caught exception.
+
+        Other, exceptional exceptions are re-thrown.
+        """
+        msg = str(exc)
+
+        if isinstance(exc, bal.MalformedBALReference):
+            code = BatchElementError.ErrorCode.kMalformedEntityReference
+        elif isinstance(exc, bal.UnknownBALEntity):
+            code = BatchElementError.ErrorCode.kEntityResolutionError
+        else:
+            raise exc
+
+        error_callback(idx, BatchElementError(code, msg))
