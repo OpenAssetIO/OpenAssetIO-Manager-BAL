@@ -90,16 +90,28 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self.createTestContext(access=Context.Access.kRead),
         )
 
-    def test_when_getRelatedReferences_called_then_results_delayed_by_specified_query_latency(
+    def test_when_getWithRelationship_called_then_results_delayed_by_specified_query_latency(
         self,
     ):
         entity_refs = self.create_test_entity_references()
-        traits_datas = [TraitsData() for _ in entity_refs]
 
-        self.__check_simulated_latencies_without_callbacks(
-            self._manager.getRelatedReferences,
+        self.__check_simulated_latencies_with_callbacks(
+            self._manager.getWithRelationship,
+            TraitsData(),
             entity_refs,
+            self.createTestContext(access=Context.Access.kRead),
+        )
+
+    def test_when_getWithRelationships_called_then_results_delayed_by_specified_query_latency(
+        self,
+    ):
+        entity_ref = self.create_test_entity_references()[0]
+        traits_datas = [TraitsData()] * 3
+
+        self.__check_simulated_latencies_with_callbacks(
+            self._manager.getWithRelationships,
             traits_datas,
+            entity_ref,
             self.createTestContext(access=Context.Access.kRead),
         )
 

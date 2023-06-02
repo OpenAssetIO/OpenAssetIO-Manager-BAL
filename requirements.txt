@@ -1,1 +1,1 @@
-openassetio == 1.0.0a9
+openassetio == 1.0.0a13
