@@ -32,7 +32,6 @@ from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
 __all__ = []
 
-
 LIBRARY_PATH_VARNAME = "BAL_LIBRARY_PATH"
 
 
@@ -466,8 +465,8 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
         result_refs = [None]
 
         self._manager.getWithRelationship(
-            self._proxy_relation,
             self.__refs("bal:///entity/original"),
+            self._proxy_relation,
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -488,8 +487,8 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
         result_refs = [None]
 
         self._manager.getWithRelationship(
-            filtered_proxy_relation,
             self.__refs("bal:///entity/original"),
+            filtered_proxy_relation,
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -505,8 +504,8 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
         result_refs = [None]
 
         self._manager.getWithRelationship(
-            self._proxy_relation,
             self.__refs("bal:///entity/original"),
+            self._proxy_relation,
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -526,8 +525,8 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
         result_refs = [None] * len(expected_refs)
 
         self._manager.getWithRelationship(
-            self._proxy_relation,
             self.__refs("bal:///entity/original", "bal:///entity/source"),
+            self._proxy_relation,
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -548,8 +547,8 @@ class Test_getWithRelationship(LibraryOverrideTestCase):
             self.assertEqual(error, expected_error)
 
         self._manager.getWithRelationship(
-            TraitsData({"missing"}),
             self.__refs("bal:///entity/original"),
+            TraitsData({"missing"}),
             self.createTestContext(access=Context.Access.kRead),
             lambda _, __: self.fail("getWithRelationship should fail"),
             check_error,
@@ -561,8 +560,8 @@ class Test_getWithRelationship_relations_data_missing(FixtureAugmentedTestCase):
         # The standard library has no relations data
         result_refs = [None]
         self._manager.getWithRelationship(
-            TraitsData({"someTrait"}),
             [self._manager.createEntityReference("bal:///another 𝓐𝓼𝓼𝓼𝓮𝔱")],
+            TraitsData({"someTrait"}),
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -601,8 +600,8 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
         result_refs = [None]
 
         self._manager.getWithRelationships(
-            [self._proxy_relation],
             self._manager.createEntityReference("bal:///entity/original"),
+            [self._proxy_relation],
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -623,8 +622,8 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
         result_refs = [None]
 
         self._manager.getWithRelationships(
-            [filtered_proxy_relation],
             self._manager.createEntityReference("bal:///entity/original"),
+            [filtered_proxy_relation],
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -640,8 +639,8 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
         result_refs = [None]
 
         self._manager.getWithRelationships(
-            [self._proxy_relation],
             self._manager.createEntityReference("bal:///entity/original"),
+            [self._proxy_relation],
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -661,8 +660,8 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
         result_refs = [None] * len(expected_refs)
 
         self._manager.getWithRelationships(
-            [self._proxy_relation, TraitsData({self._source_trait_id})],
             self._manager.createEntityReference("bal:///entity/original"),
+            [self._proxy_relation, TraitsData({self._source_trait_id})],
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(
@@ -683,8 +682,8 @@ class Test_getWithRelationships(LibraryOverrideTestCase):
             self.assertEqual(error, expected_error)
 
         self._manager.getWithRelationships(
-            [TraitsData({"missing"})],
             self._manager.createEntityReference("bal:///entity/original"),
+            [TraitsData({"missing"})],
             self.createTestContext(access=Context.Access.kRead),
             lambda _, __: self.fail("getWithRelationships should fail"),
             check_error,
@@ -696,8 +695,8 @@ class Test_getWithRelationships_relations_data_missing(FixtureAugmentedTestCase)
         # The standard library has no relations data
         result_refs = [None]
         self._manager.getWithRelationships(
-            [TraitsData({"someTrait"})],
             self._manager.createEntityReference("bal:///another 𝓐𝓼𝓼𝓼𝓮𝔱"),
+            [TraitsData({"someTrait"})],
             self.createTestContext(access=Context.Access.kRead),
             lambda idx, refs: operator.setitem(result_refs, idx, refs),
             lambda _, err: self.fail(

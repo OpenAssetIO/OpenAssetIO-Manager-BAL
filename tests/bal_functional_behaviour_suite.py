@@ -97,8 +97,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
 
         self.__check_simulated_latencies_with_callbacks(
             self._manager.getWithRelationship,
-            TraitsData(),
             entity_refs,
+            TraitsData(),
             self.createTestContext(access=Context.Access.kRead),
         )
 
@@ -110,8 +110,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
 
         self.__check_simulated_latencies_with_callbacks(
             self._manager.getWithRelationships,
-            traits_datas,
             entity_ref,
+            traits_datas,
             self.createTestContext(access=Context.Access.kRead),
         )
 
