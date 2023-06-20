@@ -30,6 +30,7 @@ from openassetio.managerApi import ManagerInterface
 
 from . import bal
 
+
 __all__ = [
     "BasicAssetLibraryInterface",
 ]
@@ -203,13 +204,13 @@ class BasicAssetLibraryInterface(ManagerInterface):
     @simulated_delay
     def getWithRelationship(
         self,
-        relationshipTraitsData,
         entityReferences,
+        relationshipTraitsData,
+        resultTraitSet,
         context,
         hostSession,
         successCallback,
         errorCallback,
-        resultTraitSet=None,
     ):
         for idx, entity_ref in enumerate(entityReferences):
             try:
@@ -227,13 +228,13 @@ class BasicAssetLibraryInterface(ManagerInterface):
     @simulated_delay
     def getWithRelationships(
         self,
-        relationshipTraitsDatas,
         entityReference,
+        relationshipTraitsDatas,
+        resultTraitSet,
         context,
         hostSession,
         successCallback,
         errorCallback,
-        resultTraitSet=None,
     ):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:

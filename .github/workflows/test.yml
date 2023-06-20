@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Download wheels from commit OpenAssetIO feature branch
+      - name: Download wheels from OpenAssetIO main
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: build-wheels.yml
@@ -26,6 +26,7 @@ jobs:
           name: openassetio-wheels
           repo: OpenAssetIO/OpenAssetIO
           path: deps
+          branch: main
 
       - uses: actions/setup-python@v4
         with:
