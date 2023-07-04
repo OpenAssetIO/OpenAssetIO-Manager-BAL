@@ -19,6 +19,8 @@ BasicAssetLibrary manager behaves as expected concerning functional
 behaviors that don't fall under "business-logic", such as performance
 related requirements.
 """
+import contextlib
+import operator
 
 # pylint: disable=invalid-name, missing-function-docstring, missing-class-docstring
 
@@ -115,6 +117,57 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self.createTestContext(access=Context.Access.kRead),
         )
 
+    def test_when_getWithRelationshipPaged_called_then_results_delayed_by_specified_query_latency(
+        self,
+    ):
+        entity_refs = self.create_test_entity_references()
+
+        self.__check_simulated_latencies_with_callbacks(
+            self._manager.getWithRelationshipPaged,
+            entity_refs,
+            TraitsData(),
+            1,
+            self.createTestContext(access=Context.Access.kRead),
+        )
+
+    def test_when_getWithRelationshipsPaged_called_then_results_delayed_by_specified_query_latency(
+        self,
+    ):
+        entity_ref = self.create_test_entity_references()[0]
+        traits_datas = [TraitsData()] * 3
+
+        self.__check_simulated_latencies_with_callbacks(
+            self._manager.getWithRelationshipsPaged,
+            entity_ref,
+            traits_datas,
+            1,
+            self.createTestContext(access=Context.Access.kRead),
+        )
+
+    def test_when_pager_hasNext_called_then_results_delayed(
+        self,
+    ):
+        for query_latency in self.__simulated_latency_subtests():
+            pager = self.__create_pager()
+            with self.__assert_simulated_latency_applied(query_latency):
+                pager.hasNext()
+
+    def test_when_pager_next_called_then_results_delayed(
+        self,
+    ):
+        for query_latency in self.__simulated_latency_subtests():
+            pager = self.__create_pager()
+            with self.__assert_simulated_latency_applied(query_latency):
+                pager.next()
+
+    def test_when_pager_get_called_then_results_delayed(
+        self,
+    ):
+        for query_latency in self.__simulated_latency_subtests():
+            pager = self.__create_pager()
+            with self.__assert_simulated_latency_applied(query_latency):
+                pager.get()
+
     def test_when_latency_set_to_non_int_value_error_raised(self):
         with self.assertRaises(ValueError) as ex:
             self._manager.initialize({"simulated_query_latency_ms": "A non number value"})
@@ -149,6 +202,29 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         self._manager.initialize({"library_path": valid_library_path})
         self.assertEqual(self._manager.settings()["simulated_query_latency_ms"], 50)
 
+    def __create_pager(self):
+        """
+        Get a pager object wrapping a BALEntityReferencePagerInterface.
+
+        Arbitrarily choose getWithRelationshipPaged as a way to get a
+        pager - we know it's the same type as returned by
+        getWithRelationshipsPaged.
+        """
+        entity_ref = self.create_test_entity_references()[0]
+        pagers = [None]
+
+        self._manager.getWithRelationshipPaged(
+            [entity_ref],
+            TraitsData(),
+            1,
+            self.createTestContext(access=Context.Access.kRead),
+            lambda idx, pager: operator.setitem(pagers, idx, pager),
+            lambda idx, error: self.fail(f"Unexpected BatchElementError {error}"),
+        )
+        [pager] = pagers
+
+        return pager
+
     # We wouldn't normally test specific implementation like this, (ie),
     # are we calling a specific function. But because this is time
     # based, this lets us not be vulnerable to specific system timing.
@@ -159,23 +235,24 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             patched_time_sleep.assert_not_called()
 
     def __check_simulated_latencies_with_callbacks(self, method, *args, **kwargs):
-        def assert_cb(idx, traits_data):
-            self.__assert_sleep_calls(query_latency, patched_time_sleep)
-
-        for query_latency in self.__test_query_latencies:
-            with self.subTest(query_latency=query_latency):
-                self._manager.initialize({"simulated_query_latency_ms": query_latency})
-                with mock.patch("time.sleep", return_value=None) as patched_time_sleep:
-                    # Call assert in the callback to guarantee than by
-                    # the time the callback is invoked, sleep has
-                    # already been called.
-
-                    method(*args, assert_cb, assert_cb, **kwargs)
+        for query_latency in self.__simulated_latency_subtests():
+            with self.__assert_simulated_latency_applied(query_latency):
+                method(*args, mock.Mock(), mock.Mock(), **kwargs)
 
     def __check_simulated_latencies_without_callbacks(self, method, *args, **kwargs):
+        for query_latency in self.__simulated_latency_subtests():
+            with self.__assert_simulated_latency_applied(query_latency):
+                method(*args, **kwargs)
+
+    def __simulated_latency_subtests(self):
         for query_latency in self.__test_query_latencies:
             with self.subTest(query_latency=query_latency):
-                self._manager.initialize({"simulated_query_latency_ms": query_latency})
-                with mock.patch("time.sleep", return_value=None) as patched_time_sleep:
-                    method(*args, **kwargs)
-                    self.__assert_sleep_calls(query_latency, patched_time_sleep)
+                with mock.patch("time.sleep"):  # Patch away delay for setup block.
+                    self._manager.initialize({"simulated_query_latency_ms": query_latency})
+                    yield query_latency
+
+    @contextlib.contextmanager
+    def __assert_simulated_latency_applied(self, query_latency):
+        with mock.patch("time.sleep") as patched_time_sleep:
+            yield
+            self.__assert_sleep_calls(query_latency, patched_time_sleep)

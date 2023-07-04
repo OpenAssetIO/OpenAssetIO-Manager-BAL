@@ -12,6 +12,12 @@ v1.0.0-alpha.x
 - Refactored error handling. `BatchElementError` messages have been
   reformatted when a referenced entity is missing from the library.
 
+### New Features
+
+- Added support for `getWithRelationship[s]Paged` paged relationship
+  query API.
+  [#46](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/46)
+
 v1.0.0-alpha.8
 --------------
 
