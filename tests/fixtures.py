@@ -21,7 +21,7 @@ import json
 import os
 
 from openassetio import TraitsData
-from openassetio.constants import kField_EntityReferencesMatchPrefix
+from openassetio import constants
 
 
 #
@@ -68,7 +68,7 @@ fixtures = {
     "Test_identifier": {"test_matches_fixture": {"identifier": IDENTIFIER}},
     "Test_displayName": {"test_matches_fixture": {"display_name": "Basic Asset Library 📖"}},
     "Test_info": {
-        "test_matches_fixture": {"info": {kField_EntityReferencesMatchPrefix: "bal:///"}}
+        "test_matches_fixture": {"info": {constants.kField_EntityReferencesMatchPrefix: "bal:///"}}
     },
     "Test_initialize": {
         "shared": {
