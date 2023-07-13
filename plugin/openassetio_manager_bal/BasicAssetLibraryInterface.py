@@ -26,7 +26,7 @@ import time
 from functools import wraps
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
 from openassetio.exceptions import MalformedEntityReference, PluginError
-from openassetio.managerApi import ManagerInterface
+from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
 
 from . import bal
 
@@ -49,9 +49,7 @@ def simulated_delay(func):
     @wraps(func)
     def wrapper_simulated_delay(self, *args, **kwargs):
         # pylint: disable=protected-access
-        delay_ms = self._BasicAssetLibraryInterface__settings.get(
-            bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0
-        )
+        delay_ms = self.simulated_latency
         if delay_ms > 0:
             time.sleep(delay_ms / 1000.0)  # sleep takes seconds
         return func(self, *args, **kwargs)
@@ -85,6 +83,17 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     def settings(self, hostSession):
         return self.__settings.copy()
+
+    @property
+    def simulated_latency(self):
+        """
+        BAL internal convenience to get the simulated latency of API
+        methods.
+
+        This is read-only - updating the latency must be done via the
+        settings mechanism, i.e. re-`initialize` the plugin.
+        """
+        return self.__settings.get(bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0)
 
     def initialize(self, managerSettings, hostSession):
         bal.validate_settings(managerSettings)
@@ -249,6 +258,70 @@ class BasicAssetLibraryInterface(ManagerInterface):
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
+    @simulated_delay
+    def getWithRelationshipPaged(
+        self,
+        entityReferences,
+        relationshipTraitsData,
+        resultTraitSet,
+        pageSize,
+        _context,
+        _hostSession,
+        successCallback,
+        errorCallback,
+    ):
+        for idx, entity_ref in enumerate(entityReferences):
+            try:
+                entity_info = bal.parse_entity_ref(entity_ref.toString())
+                relations = bal.related_references(
+                    entity_info,
+                    self.__traits_data_to_dict(relationshipTraitsData),
+                    resultTraitSet,
+                    self.__library,
+                )
+                successCallback(
+                    idx,
+                    BALEntityReferencePagerInterface(
+                        self.simulated_latency,
+                        pageSize,
+                        [self.__build_entity_ref(info) for info in relations],
+                    ),
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
+
+    @simulated_delay
+    def getWithRelationshipsPaged(
+        self,
+        entityReference,
+        relationshipTraitsDatas,
+        resultTraitSet,
+        pageSize,
+        _context,
+        _hostSession,
+        successCallback,
+        errorCallback,
+    ):
+        for idx, relationship in enumerate(relationshipTraitsDatas):
+            try:
+                entity_info = bal.parse_entity_ref(entityReference.toString())
+                relations = bal.related_references(
+                    entity_info,
+                    self.__traits_data_to_dict(relationship),
+                    resultTraitSet,
+                    self.__library,
+                )
+                successCallback(
+                    idx,
+                    BALEntityReferencePagerInterface(
+                        self.simulated_latency,
+                        pageSize,
+                        [self.__build_entity_ref(info) for info in relations],
+                    ),
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
+
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
         Builds an openassetio EntityReference from a BAL EntityInfo
@@ -297,3 +370,33 @@ class BasicAssetLibraryInterface(ManagerInterface):
             raise exc
 
         error_callback(idx, BatchElementError(code, msg))
+
+
+class BALEntityReferencePagerInterface(EntityReferencePagerInterface):
+    """
+    Simple implementation of a pager.
+
+    Bulk-queries all data, then splits up into cached pages ready to
+    regurgitate on demand.
+    """
+
+    def __init__(self, simulated_latency, page_size, entity_references):
+        EntityReferencePagerInterface.__init__(self)
+        self.simulated_latency = simulated_latency
+        self.__page_num = 0
+        self.__pages = []
+
+        for page_start in range(0, len(entity_references), page_size):
+            self.__pages.append(entity_references[page_start : page_start + page_size])
+
+    @simulated_delay
+    def hasNext(self, _hostSession):
+        return self.__page_num < len(self.__pages) - 1
+
+    @simulated_delay
+    def next(self, _hostSession):
+        self.__page_num += 1
+
+    @simulated_delay
+    def get(self, _hostSession):
+        return self.__pages[self.__page_num] if self.__page_num < len(self.__pages) else []
