@@ -349,7 +349,16 @@ class BasicAssetLibraryInterface(ManagerInterface):
             StableEntityVersionsRelationshipSpecification.kTraitSet,
         ):
             include_latest = StableTrait.kId not in relationship_trait_set
-            return bal.versions(entity_info, include_latest, self.__library)
+            versions = bal.versions(entity_info, include_latest, self.__library)
+            # Filter to a specific version if requested
+            specified_version = VersionTrait(relationship_traits_data).getSpecifiedTag()
+            if specified_version:
+                if specified_version == VERSION_TAG_LATEST:
+                    versions = [versions[0]]
+                else:
+                    versions = [i for i in versions if i.version == int(specified_version)]
+
+            return versions
 
         return bal.related_references(
             entity_info,

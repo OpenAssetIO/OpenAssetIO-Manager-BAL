@@ -37,7 +37,9 @@ v1.0.0-alpha.x
 - Added support for querying entity versions using the
   OpenAssetIO-MediaCreation `EntityVersionsRelationshipSpecification` and
   `StableEntityVersionsRelationshipSpecification` with
-  `getWithRelationship`.
+  `getWithRelationship`. If the `specifiedVersion` property of the
+  `VersionTrait` is set, then a reference for that version will be
+  returned.
   [#49](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/49)
 
 ### Bug fixes
