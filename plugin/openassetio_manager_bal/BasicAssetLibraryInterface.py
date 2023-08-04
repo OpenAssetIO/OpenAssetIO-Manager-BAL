@@ -24,6 +24,8 @@ import os
 import time
 
 from functools import wraps
+from urllib.parse import urlparse
+
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
@@ -148,9 +150,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
         results = []
         for ref in entityRefs:
             try:
-                entity_info = bal.parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString())
                 result = bal.exists(entity_info, self.__library)
-            except bal.MalformedBALReference as exc:
+            except MalformedEntityReference as exc:
                 result = MalformedEntityReference(str(exc))
             results.append(result)
         return results
@@ -169,7 +171,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
         for idx, ref in enumerate(entityReferences):
             try:
-                entity_info = bal.parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString())
                 entity = bal.entity(entity_info, self.__library)
                 result = TraitsData()
                 for trait in traitSet:
@@ -187,7 +189,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         # Support publishing to any valid entity reference
         for idx, ref in enumerate(targetEntityRefs):
             try:
-                bal.parse_entity_ref(ref.toString())
+                self.__parse_entity_ref(ref.toString())
                 successCallback(idx, ref)
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
@@ -204,7 +206,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, ref in enumerate(targetEntityRefs):
             try:
-                entity_info = bal.parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString())
                 traits_dict = self.__traits_data_to_dict(entityTraitsDatas[idx])
                 updated_entity_info = bal.create_or_update_entity(
                     entity_info, traits_dict, self.__library
@@ -226,7 +228,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, entity_ref in enumerate(entityReferences):
             try:
-                entity_info = bal.parse_entity_ref(entity_ref.toString())
+                entity_info = self.__parse_entity_ref(entity_ref.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationshipTraitsData),
@@ -250,7 +252,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
-                entity_info = bal.parse_entity_ref(entityReference.toString())
+                entity_info = self.__parse_entity_ref(entityReference.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationship),
@@ -275,7 +277,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, entity_ref in enumerate(entityReferences):
             try:
-                entity_info = bal.parse_entity_ref(entity_ref.toString())
+                entity_info = self.__parse_entity_ref(entity_ref.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationshipTraitsData),
@@ -307,7 +309,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
-                entity_info = bal.parse_entity_ref(entityReference.toString())
+                entity_info = self.__parse_entity_ref(entityReference.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationship),
@@ -324,6 +326,22 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 )
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
+
+    @staticmethod
+    def __parse_entity_ref(entity_ref: str) -> bal.EntityInfo:
+        """
+        Decomposes an entity reference into bal fields.
+        """
+        uri_parts = urlparse(entity_ref)
+
+        if len(uri_parts.path) <= 1:
+            raise MalformedEntityReference("Missing entity name in path component", entity_ref)
+
+        # path will start with a /
+        name = uri_parts.path[1:]
+
+        return bal.EntityInfo(name=name)
+
 
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
@@ -365,7 +383,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         """
         msg = str(exc)
 
-        if isinstance(exc, bal.MalformedBALReference):
+        if isinstance(exc, MalformedEntityReference):
             code = BatchElementError.ErrorCode.kMalformedEntityReference
         elif isinstance(exc, bal.UnknownBALEntity):
             code = BatchElementError.ErrorCode.kEntityResolutionError

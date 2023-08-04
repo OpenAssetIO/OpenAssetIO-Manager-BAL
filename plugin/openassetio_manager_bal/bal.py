@@ -31,7 +31,6 @@ import string
 
 from dataclasses import dataclass
 from typing import Dict, List, Set, Optional
-from urllib.parse import urlparse
 
 
 @dataclass
@@ -89,21 +88,6 @@ def load_library(path: str) -> dict:
     subs_vars["bal_library_dir"] = lib_dir
 
     return library
-
-
-def parse_entity_ref(entity_ref: str) -> EntityInfo:
-    """
-    Decomposes an entity reference into bal fields.
-    """
-    uri_parts = urlparse(entity_ref)
-
-    if len(uri_parts.path) <= 1:
-        raise MalformedBALReference("Missing entity name in path component", entity_ref)
-
-    # path will start with a /
-    name = uri_parts.path[1:]
-
-    return EntityInfo(name=name)
 
 
 def exists(entity_info: EntityInfo, library: dict) -> bool:
@@ -302,13 +286,3 @@ class UnknownBALEntity(RuntimeError):
 
     def __init__(self, entity_info: EntityInfo):
         super().__init__(f"Entity '{entity_info.name}' not found")
-
-
-class MalformedBALReference(RuntimeError):
-    """
-    An exception raised for a reference that is missing an entity name
-    or other required part.
-    """
-
-    def __init__(self, message, reference: str):
-        super().__init__(f"Malformed BAL reference: {message} '{reference}'")

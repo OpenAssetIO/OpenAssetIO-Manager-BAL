@@ -1,10 +1,18 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### Breaking changes
+
+- Refactored entity reference handling, resulting in a change to
+  exception message formatting for malformed entity references.
+
 v1.0.0-alpha.9
 --------------
 
-### Breaking Changes
+### Breaking changes
 
 - Minimum OpenAssetIO version increased to `v1.0.0-alpha.13` due to API
   changes.

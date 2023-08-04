@@ -45,9 +45,7 @@ IDENTIFIER = "org.openassetio.examples.manager.bal"
 VALID_REF = "bal:///references/can/contain/🐠"
 NON_REF = "not a Ŕeference"
 MALFORMED_REF = "bal:///"
-ERROR_MSG_MALFORMED_REF = (
-    "Malformed BAL reference: Missing entity name in path component 'bal:///'"
-)
+ERROR_MSG_MALFORMED_REF = "Missing entity name in path component (bal:///)"
 MISSING_REF = "bal:///missing_entity"
 ERROR_MSG_MISSING_ENTITY = "Entity 'missing_entity' not found"
 
