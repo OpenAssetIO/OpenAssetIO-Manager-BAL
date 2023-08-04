@@ -21,6 +21,7 @@ A single-class module, providing the BasicAssetLibraryInterface class.
 """
 
 import os
+import re
 import time
 
 from functools import wraps
@@ -39,6 +40,7 @@ __all__ = [
 
 SETTINGS_KEY_LIBRARY_PATH = "library_path"
 SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
+SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME = "entity_reference_url_scheme"
 
 
 # TODO(TC): @pylint-disable
@@ -68,7 +70,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ManagerInterface.
     """
 
-    __reference_prefix = "bal:///"
     __lib_path_envvar_name = "BAL_LIBRARY_PATH"
 
     def __init__(self):
@@ -84,7 +85,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return "Basic Asset Library 📖"
 
     def info(self):
-        return {constants.kField_EntityReferencesMatchPrefix: self.__reference_prefix}
+        return {constants.kField_EntityReferencesMatchPrefix: self.__entity_refrence_prefix()}
 
     def settings(self, hostSession):
         return self.__settings.copy()
@@ -143,7 +144,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         ]
 
     def isEntityReferenceString(self, someString, hostSession):
-        return someString.startswith(self.__reference_prefix)
+        return someString.startswith(self.__entity_refrence_prefix())
 
     @simulated_delay
     def entityExists(self, entityRefs, context, hostSession):
@@ -342,13 +343,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
         return bal.EntityInfo(name=name)
 
-
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
         Builds an openassetio EntityReference from a BAL EntityInfo
         """
-        ref_string = f"bal:///{entity_info.name}"
+        ref_string = f"{self.__entity_refrence_prefix()}{entity_info.name}"
         return self._createEntityReference(ref_string)
+
+    def __entity_refrence_prefix(self):
+        return f"{self.__settings[SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME]}:///"
 
     @classmethod
     def __dict_to_traits_data(cls, traits_dict: dict):
@@ -402,6 +405,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return {
             SETTINGS_KEY_LIBRARY_PATH: "",
             SETTINGS_KEY_SIMULATED_QUERY_LATENCY: 10,
+            SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME: "bal",
         }
 
     @staticmethod
@@ -415,6 +419,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         if SETTINGS_KEY_LIBRARY_PATH in settings:
             if not isinstance(settings[SETTINGS_KEY_LIBRARY_PATH], str):
                 raise ValueError(f"{SETTINGS_KEY_LIBRARY_PATH} must be a str")
+
         if SETTINGS_KEY_SIMULATED_QUERY_LATENCY in settings:
             query_latency = settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]
             # This bool check is because bools are also ints as far as
@@ -423,6 +428,18 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must be a number")
             if query_latency < 0:
                 raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must not be negative")
+
+        if SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME in settings:
+            scheme = settings[SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME]
+            if not isinstance(scheme, str):
+                raise ValueError(f"{SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME} must be a string")
+            if not scheme:
+                raise ValueError(f"{SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME} must not be empty")
+            if not re.match(r"^[a-zA-Z0-9-]+$", scheme):
+                raise ValueError(
+                    f"{SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME} '{scheme}' must only consist of "
+                    "legal URL scheme characters (a-z, A-Z, 0-9, -)"
+                )
 
         for key in settings:
             if key not in defaults:
