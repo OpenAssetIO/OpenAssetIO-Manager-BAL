@@ -25,11 +25,13 @@ import re
 import time
 
 from functools import wraps
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
+
+from openassetio_mediacreation.traits.lifecycle import VersionTrait
 
 from . import bal
 
@@ -162,6 +164,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def resolve(
         self, entityReferences, traitSet, context, hostSession, successCallback, errorCallback
     ):
+        # pylint: disable=too-many-locals
         if context.isForWrite():
             result = BatchElementError(
                 BatchElementError.ErrorCode.kEntityAccessError, "BAL entities are read-only"
@@ -179,6 +182,13 @@ class BasicAssetLibraryInterface(ManagerInterface):
                     trait_data = entity.traits.get(trait)
                     if trait_data is not None:
                         self.__add_trait_to_traits_data(trait, trait_data, result)
+
+                if VersionTrait.kId in traitSet:
+                    version_trait = VersionTrait(result)
+                    version_trait.setStableTag(str(entity.version))
+                    if entity_info.version:
+                        version_trait.setSpecifiedTag(str(entity_info.version))
+
                 successCallback(idx, result)
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
@@ -187,11 +197,14 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def preflight(
         self, targetEntityRefs, traitsDatas, context, hostSession, successCallback, errorCallback
     ):
-        # Support publishing to any valid entity reference
         for idx, ref in enumerate(targetEntityRefs):
             try:
-                self.__parse_entity_ref(ref.toString())
-                successCallback(idx, ref)
+                # Remove version info from the reference, as publishing will
+                # will always create a new version.
+                # TODO(tc): Create a placeholder version
+                entity_info = self.__parse_entity_ref(ref.toString())
+                entity_info.version = None
+                successCallback(idx, self.__build_entity_ref(entity_info))
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
@@ -328,8 +341,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
-    @staticmethod
-    def __parse_entity_ref(entity_ref: str) -> bal.EntityInfo:
+
+    @classmethod
+    def __parse_entity_ref(cls, entity_ref: str) -> bal.EntityInfo:
         """
         Decomposes an entity reference into bal fields.
         """
@@ -341,13 +355,43 @@ class BasicAssetLibraryInterface(ManagerInterface):
         # path will start with a /
         name = uri_parts.path[1:]
 
-        return bal.EntityInfo(name=name)
+        version = None
+
+        if uri_parts.query:
+            params = parse_qs(uri_parts.query)
+            version = cls.__version_from_query_params(params, entity_ref)
+
+        return bal.EntityInfo(name=name, version=version)
+
+    @staticmethod
+    def __version_from_query_params(query_params, entity_ref) -> int:
+        """
+        Determine the version based on the presence of 'v' in the
+        supplied query params.
+        """
+        if "v" not in query_params:
+            return None
+
+        try:
+            v = int(query_params["v"][-1])
+        except ValueError as exc:
+            raise MalformedEntityReference(
+                "Version query parameter 'v' must be an int", entity_ref
+            ) from exc
+        if v < 1:
+            raise MalformedEntityReference(
+                "Version query parameter 'v' must be greater than 1", entity_ref
+            )
+
+        return v
 
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
         Builds an openassetio EntityReference from a BAL EntityInfo
         """
         ref_string = f"{self.__entity_refrence_prefix()}{entity_info.name}"
+        if entity_info.version:
+            ref_string += f"?v={entity_info.version}"
         return self._createEntityReference(ref_string)
 
     def __entity_refrence_prefix(self):
@@ -390,6 +434,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
             code = BatchElementError.ErrorCode.kMalformedEntityReference
         elif isinstance(exc, bal.UnknownBALEntity):
             code = BatchElementError.ErrorCode.kEntityResolutionError
+        elif isinstance(exc, bal.InvalidEntityVersion):
+            code = BatchElementError.ErrorCode.kMalformedEntityReference
         else:
             raise exc
 

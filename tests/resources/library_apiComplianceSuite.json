@@ -13,11 +13,21 @@
       "versions": [
         {
           "traits": {
-            "string": { "value": "resolved from 'anAsset⭐︎' using 📠"},
+            "string": { "value": "resolved from 'anAsset⭐︎' version 1 using 📠"},
             "number": { "value": 42 },
+            "expected-version": { "tag": "1"},
+            "test-data": {}
+          }
+        },
+        {
+          "traits": {
+            "string": { "value": "resolved from 'anAsset⭐︎' version 2 using 📠"},
+            "number": { "value": 28390222293 },
+            "expected-version": { "tag": "2" },
             "test-data": {}
           }
         }
+
       ]
     },
     "another 𝓐𝓼𝓼𝓼𝓮𝔱": {

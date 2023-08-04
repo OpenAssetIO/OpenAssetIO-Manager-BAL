@@ -49,6 +49,9 @@ manager behavior.
   default of `bal` using the `entity_reference_url_scheme` setting.
   This must be set to a simple alphanumeric string.
 
+- Specific versions of BAL entities are accessed using the `v=X` query
+  parameter, where `X` is an integer version number starting at `1`.
+
 ## Installation
 
 To use the plugin in an OpenAssetIO host, install via `pip`, or set (or append) the

@@ -18,16 +18,20 @@ A manager test harness test case suite that validates that the
 BasicAssetLibrary manager behaves with the correct business logic.
 """
 
-# pylint: disable=invalid-name, missing-function-docstring, missing-class-docstring
+# pylint: disable=invalid-name, missing-function-docstring, missing-class-docstring,
+# pylint: disable=too-few-public-methods
 
 import operator
 import os
 
 from unittest import mock
 
-from openassetio import constants, Context, TraitsData
+import openassetio
+from openassetio import constants, Context, TraitsData, BatchElementError
 from openassetio.exceptions import PluginError
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
+
+import openassetio_mediacreation
 
 
 __all__ = []
@@ -287,8 +291,8 @@ class Test_resolve(FixtureAugmentedTestCase):
 
     __entities = {
         "bal:///anAsset⭐︎": {
-            "string": {"value": "resolved from 'anAsset⭐︎' using 📠"},
-            "number": {"value": 42},
+            "string": {"value": "resolved from 'anAsset⭐︎' version 2 using 📠"},
+            "number": {"value": 28390222293},
             "test-data": {},
         },
         "bal:///another 𝓐𝓼𝓼𝓼𝓮𝔱": {
@@ -395,8 +399,113 @@ class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
         return data
 
 
+class Test_entityExists_version_query_param(FixtureAugmentedTestCase):
+    def test_when_v_is_not_set_and_entity_exists_then_returns_true(self):
+        self.assertEntityExists("anAsset⭐︎", None, True)
+
+    def test_when_v_is_valid_then_true_returned(self):
+        for i in range(1, 3):
+            with self.subTest(v=i):
+                self.assertEntityExists("anAsset⭐︎", f"{i}", True)
+
+    def test_when_v_is_greater_than_latest_then_false_returned(self):
+        self.assertEntityExists("anAsset⭐︎", "3", False)
+
+    def test_when_v_is_greater_less_than_one_then_false_returned(self):
+        self.assertEntityExists("anAsset⭐︎", "3", False)
+
+    def test_when_v_is_not_an_int_then_batch_element_error_is_returned(self):
+        self.assertMalformedReferenceError(
+            "anAsset⭐︎", "cabbage", "Version query parameter 'v' must be an int"
+        )
+
+    def test_when_v_is_less_than_one_then_batch_element_error_is_returned(self):
+        self.assertMalformedReferenceError(
+            "anAsset⭐︎", -3, "Version query parameter 'v' must be greater than 1"
+        )
+
+    def assertMalformedReferenceError(self, entity_name, specified_tag, expected_msg):
+        """
+        Asserts that the expected error is returned for an invalid tag.
+        """
+
+        ref_str = f"bal:///{entity_name}?v={specified_tag}"
+        expceted_error = BatchElementError(
+            BatchElementError.ErrorCode.kMalformedEntityReference,
+            f"{expected_msg} ({ref_str})",
+        )
+
+        self._manager.entityExists(
+            [self._manager.createEntityReference(ref_str)],
+            self.createTestContext(),
+            lambda idx, _: self.fail("Invalid references should trigger error callback"),
+            lambda idx, error: self.assertEqual(error, expceted_error),
+        )
+
+    def assertEntityExists(self, entity_name, specified_tag, expected_exists):
+        """
+        Assets that the value of entityExists for the specified
+        entity/version.
+        """
+
+        ref_str = f"bal:///{entity_name}"
+        if specified_tag:
+            ref_str += f"?v={specified_tag}"
+
+        self._manager.entityExists(
+            [self._manager.createEntityReference(ref_str)],
+            self.createTestContext(),
+            lambda idx, exists: self.assertEqual(exists, expected_exists),
+            lambda idx, error: self.fail(
+                f"Failed to check existence of reference: {error.message}"
+            ),
+        )
+
+
+class Test_resolve_version_query_param(FixtureAugmentedTestCase):
+    def test_when_v_is_not_set_latest_is_resolved_with_version_trait(self):
+        self.assertVersioning("anAsset⭐︎", None, "2")
+
+    def test_when_v_is_valid_integer_corresponding_entity_resolved_with_version_trait(self):
+        self.assertVersioning("anAsset⭐︎", "1", "1")
+
+    def test_when_v_is_greater_than_latest_then_resolution_error_returned(self):
+        with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
+            self.assertVersioning("anAsset⭐︎", "3", "")
+
+    def test_when_v_is_less_than_one_then_resolution_error_returned(self):
+        with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
+            self.assertVersioning("anAsset⭐︎", "0", "")
+
+    def test_when_v_is_not_an_integer_then_error_is_returned(self):
+        with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
+            self.assertVersioning("anAsset⭐︎", "latest", "")
+
+    def assertVersioning(self, entity_name, specified_tag, expected_stable):
+        """
+        Asserts the correct entity has been retrieved and the specified
+        and stable tag properties are set correctly.
+        """
+
+        ref_str = f"bal:///{entity_name}"
+        if specified_tag:
+            ref_str += f"?v={specified_tag}"
+
+        data = self._manager.resolve(
+            self._manager.createEntityReference(ref_str),
+            {"expected-version", openassetio_mediacreation.traits.lifecycle.VersionTrait.kId},
+            self.createTestContext(),
+        )
+
+        self.assertEqual(data.getTraitProperty("expected-version", "tag"), expected_stable)
+
+        version_trait = openassetio_mediacreation.traits.lifecycle.VersionTrait(data)
+        self.assertEqual(version_trait.getSpecifiedTag(), specified_tag)
+        self.assertEqual(version_trait.getStableTag(), expected_stable)
+
+
 class Test_preflight(FixtureAugmentedTestCase):
-    def test_when_refs_valid_then_are_passed_through_unchanged(self):
+    def test_when_refs_contains_no_version_then_passed_through_unchanged(self):
         entity_references = [
             self._manager.createEntityReference(s)
             for s in ["bal:///A ref to a 🐔", "bal:///anotherRef"]
@@ -416,9 +525,30 @@ class Test_preflight(FixtureAugmentedTestCase):
 
         self.assertEqual(result_references, entity_references)
 
+    def test_when_refs_versioned_then_v_query_param_removed(self):
+        entity_references = [
+            self._manager.createEntityReference(s)
+            for s in ["bal:///A ref to a 🐔?v=2", "bal:///anotherRef?v=6"]
+        ]
+        traits_datas = [TraitsData()] * len(entity_references)
+        context = self.createTestContext(access=Context.Access.kWrite)
+
+        result_references = [None] * len(entity_references)
+
+        self._manager.preflight(
+            entity_references,
+            traits_datas,
+            context,
+            lambda idx, ref: operator.setitem(result_references, idx, ref),
+            lambda _idx, _err: self.fail("Preflight should not error for this input"),
+        )
+
+        for ref in result_references:
+            self.assertFalse("v=" in ref.toString())
+
 
 class Test_register(FixtureAugmentedTestCase):
-    def test_when_ref_is_new_then_entity_created_with_same_reference(self):
+    def test_when_ref_is_new_then_entity_created_with_versioned_reference(self):
         context = self.createTestContext()
         data = TraitsData()
         data.setTraitProperty("a_trait", "a_property", 1)
@@ -436,9 +566,14 @@ class Test_register(FixtureAugmentedTestCase):
                 f"Failed to check existence of reference: {error.message}"
             ),
         )
-        self.assertEqual(published_entity_ref, new_entity_ref)
 
-    def test_when_ref_exists_then_entity_updated_with_same_reference(self):
+        expected_entity_ref = self._manager.createEntityReference(
+            "bal:///test_when_ref_is_new_then_entity_created_with_same_reference?v=1"
+        )
+
+        self.assertEqual(expected_entity_ref, published_entity_ref)
+
+    def test_when_ref_exists_then_entity_updated_with_versioned_reference(self):
         context = self.createTestContext()
         data = TraitsData()
         data.setTraitProperty("a_trait", "a_property", 1)
@@ -461,6 +596,12 @@ class Test_register(FixtureAugmentedTestCase):
             lambda idx, ref: operator.setitem(updated_refs, idx, ref),
             lambda _, err: self.fail(f"Register should not error: {err.code} {err.message}"),
         )
+
+        expected_entity_ref = self._manager.createEntityReference(
+            "bal:///test_when_ref_exsits_then_entity_updated_with_same_reference?v=2"
+        )
+
+        self.assertEqual(updated_refs[0], expected_entity_ref)
 
         resolved_data = [None]
 

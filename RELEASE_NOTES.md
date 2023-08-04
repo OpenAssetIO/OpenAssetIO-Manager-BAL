@@ -11,18 +11,34 @@ v1.0.0-alpha.x
 
 - Migrated `entityExists` to the batch-first callback based signature.
 
+- Entity references returned from `register` will now contain a
+  version specifier in the `v=<version>` query parameter.
+  [#49](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/49)
+
+- Added a runtime dependency on the `openassetio-mediacreation` package.
+
 ### New features
 
 - The entity reference scheme consumed by BAL can be adjusted from the
   default of `bal` using the `entity_reference_url_scheme` setting.
   This must be set to a simple alphanumeric string.
 
+- Added support for retrieving specific versions using the `v=<version>`
+  query parameter in a BAL entity reference. When publishing,
+  `preflight` will remove any explicit version specifier (as it will
+  always produce a new version), and `register` will return an entity
+  reference with the version specifier for the newly created version.
+  [#49](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/49)
+
+- Added support for resolving the OpenAssetIO-MediaCreation
+  `VersionTrait`.
+  [#49](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/49)
+
 ### Bug fixes
 
 - Added missing fixtures for the `openassetio.test.manager` API
   compliance suite test harness.
   [#61](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/61)
-
 
 v1.0.0-alpha.9
 --------------
