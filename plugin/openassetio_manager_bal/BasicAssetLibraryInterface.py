@@ -35,6 +35,9 @@ __all__ = [
     "BasicAssetLibraryInterface",
 ]
 
+SETTINGS_KEY_LIBRARY_PATH = "library_path"
+SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
+
 
 # TODO(TC): @pylint-disable
 # As we are building out the implementation vertically, we have known
@@ -68,7 +71,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     def __init__(self):
         super().__init__()
-        self.__settings = bal.make_default_settings()
+        self.__settings = self.__make_default_settings()
         self.__library = {}
 
     def identifier(self):
@@ -93,10 +96,10 @@ class BasicAssetLibraryInterface(ManagerInterface):
         This is read-only - updating the latency must be done via the
         settings mechanism, i.e. re-`initialize` the plugin.
         """
-        return self.__settings.get(bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0)
+        return self.__settings.get(SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0)
 
     def initialize(self, managerSettings, hostSession):
-        bal.validate_settings(managerSettings)
+        self.__validate_settings(managerSettings)
 
         # Settings updates can be partial, so make sure we keep any
         # existing path.
@@ -127,7 +130,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         hostSession.logger().log(
             hostSession.logger().Severity.kDebug,
             f"Running with simulated query latency of "
-            f"{self.__settings[bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
+            f"{self.__settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
         )
 
     def managementPolicy(self, traitSets, context, hostSession):
@@ -370,6 +373,42 @@ class BasicAssetLibraryInterface(ManagerInterface):
             raise exc
 
         error_callback(idx, BatchElementError(code, msg))
+
+    @staticmethod
+    def __make_default_settings() -> dict:
+        """
+        Generates a default settings dict for BAL.
+        Note: as a library is required, the default settings are not enough
+        to initialize the manager.
+        """
+        return {
+            SETTINGS_KEY_LIBRARY_PATH: "",
+            SETTINGS_KEY_SIMULATED_QUERY_LATENCY: 10,
+        }
+
+    @staticmethod
+    def __validate_settings(settings: dict):
+        """
+        Parses the supplied settings dict, raising if there are any
+        unrecognized keys present.
+        """
+        defaults = BasicAssetLibraryInterface.__make_default_settings()
+
+        if SETTINGS_KEY_LIBRARY_PATH in settings:
+            if not isinstance(settings[SETTINGS_KEY_LIBRARY_PATH], str):
+                raise ValueError(f"{SETTINGS_KEY_LIBRARY_PATH} must be a str")
+        if SETTINGS_KEY_SIMULATED_QUERY_LATENCY in settings:
+            query_latency = settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]
+            # This bool check is because bools are also ints as far as
+            # python is concerned.
+            if isinstance(query_latency, bool) or not isinstance(query_latency, (int, float)):
+                raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must be a number")
+            if query_latency < 0:
+                raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must not be negative")
+
+        for key in settings:
+            if key not in defaults:
+                raise KeyError(f"Unknown setting '{key}'")
 
 
 class BALEntityReferencePagerInterface(EntityReferencePagerInterface):
