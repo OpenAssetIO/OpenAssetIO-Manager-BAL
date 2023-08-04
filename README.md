@@ -51,6 +51,9 @@ manager behavior.
 
 - Specific versions of BAL entities are accessed using the `v=X` query
   parameter, where `X` is an integer version number starting at `1`.
+  BAL also supports OpenAssetIO-MediaCreation `*EntityVersionsRelationship`
+  [relationship](https://github.com/OpenAssetIO/OpenAssetIO-MediaCreation/blob/3da0b7cf055b5d93f01b031bdd239520e413a750/traits.yml#L277)
+  queries.
 
 ## Installation
 

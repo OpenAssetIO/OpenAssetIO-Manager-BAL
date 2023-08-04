@@ -32,6 +32,10 @@ from openassetio.exceptions import PluginError
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
 import openassetio_mediacreation
+from openassetio_mediacreation.specifications.lifecycle import (
+    EntityVersionsRelationshipSpecification,
+    StableEntityVersionsRelationshipSpecification,
+)
 
 
 __all__ = []
@@ -651,6 +655,44 @@ class Test_register(FixtureAugmentedTestCase):
 
         context.access = old_access
         return published_refs[0]
+
+
+class Test_getWithRelationship_versions(FixtureAugmentedTestCase):
+    def test_when_querying_versions_then_versions_and_latest_returned(self):
+        expected_refs = [
+            self._manager.createEntityReference(r)
+            for r in (
+                "bal:///anAsset⭐︎",
+                "bal:///anAsset⭐︎?v=2",
+                "bal:///anAsset⭐︎?v=1",
+            )
+        ]
+        self.assertExpectedRefs(EntityVersionsRelationshipSpecification, expected_refs)
+
+    def test_when_querying_stable_versions_then_versions_returned(self):
+        expected_refs = [
+            self._manager.createEntityReference(r)
+            for r in (
+                "bal:///anAsset⭐︎?v=2",
+                "bal:///anAsset⭐︎?v=1",
+            )
+        ]
+        self.assertExpectedRefs(StableEntityVersionsRelationshipSpecification, expected_refs)
+
+    def assertExpectedRefs(self, specification, expected_refs):
+        result_refs = []
+
+        self._manager.getWithRelationship(
+            [self._manager.createEntityReference("bal:///anAsset⭐︎")],
+            specification.create().traitsData(),
+            self.createTestContext(),
+            lambda idx, refs: result_refs.extend(refs),
+            lambda _, err: self.fail(f"Failed to query releationships: {err.core} {err.message}"),
+        )
+
+        self.assertEqual(
+            [r.toString() for r in result_refs], [r.toString() for r in expected_refs]
+        )
 
 
 def resources_path():

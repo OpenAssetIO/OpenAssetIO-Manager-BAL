@@ -151,6 +151,28 @@ def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
     return policy
 
 
+def versions(entity_info: EntityInfo, include_latest: bool, library: dict) -> List[EntityInfo]:
+    """
+    Retrieves a list of version of the entity, if include_latest is
+    true, then an EntityInfo that always retrieves the latest entity
+    will be prepended to the list. Entities are returned newest first.
+    """
+    results = []
+
+    entity_dict = _library_entity_dict(entity_info, library)
+    if entity_dict is None:
+        raise UnknownBALEntity(entity_info)
+
+    if include_latest:
+        results.append(EntityInfo(name=entity_info.name, version=None))
+
+    num_versions = len(entity_dict["versions"])
+    for i in range(num_versions, 0, -1):
+        results.append(EntityInfo(name=entity_info.name, version=i))
+
+    return results
+
+
 def related_references(
     entity_info: EntityInfo,
     requested_relation_traits: dict,

@@ -34,6 +34,12 @@ v1.0.0-alpha.x
   `VersionTrait`.
   [#49](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/49)
 
+- Added support for querying entity versions using the
+  OpenAssetIO-MediaCreation `EntityVersionsRelationshipSpecification` and
+  `StableEntityVersionsRelationshipSpecification` with
+  `getWithRelationship`.
+  [#49](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/49)
+
 ### Bug fixes
 
 - Added missing fixtures for the `openassetio.test.manager` API

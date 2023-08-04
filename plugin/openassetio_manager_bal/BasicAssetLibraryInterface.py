@@ -31,7 +31,11 @@ from openassetio import constants, BatchElementError, EntityReference, TraitsDat
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
 
-from openassetio_mediacreation.traits.lifecycle import VersionTrait
+from openassetio_mediacreation.traits.lifecycle import VersionTrait, StableTrait
+from openassetio_mediacreation.specifications.lifecycle import (
+    EntityVersionsRelationshipSpecification,
+    StableEntityVersionsRelationshipSpecification,
+)
 
 from . import bal
 
@@ -243,11 +247,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, entity_ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(entity_ref.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationshipTraitsData),
-                    resultTraitSet,
-                    self.__library,
+                relations = self.__get_relations(
+                    entity_info, relationshipTraitsData, resultTraitSet
                 )
                 successCallback(idx, [self.__build_entity_ref(info) for info in relations])
             except Exception as exc:  # pylint: disable=broad-except
@@ -267,12 +268,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
                 entity_info = self.__parse_entity_ref(entityReference.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationship),
-                    resultTraitSet,
-                    self.__library,
-                )
+                relations = self.__get_relations(entity_info, relationship, resultTraitSet)
                 successCallback(idx, [self.__build_entity_ref(info) for info in relations])
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
@@ -341,6 +337,25 @@ class BasicAssetLibraryInterface(ManagerInterface):
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
+    def __get_relations(self, entity_info, relationship_traits_data, result_trait_set):
+        relationship_trait_set = relationship_traits_data.traitSet()
+
+        # We don't use issuperset as otherwise we'd end up responding to
+        # any more specialized relationship definitions that may be
+        # added in the future, with incorrect results.
+        if relationship_trait_set in (
+            EntityVersionsRelationshipSpecification.kTraitSet,
+            StableEntityVersionsRelationshipSpecification.kTraitSet,
+        ):
+            include_latest = StableTrait.kId not in relationship_trait_set
+            return bal.versions(entity_info, include_latest, self.__library)
+
+        return bal.related_references(
+            entity_info,
+            self.__traits_data_to_dict(relationship_traits_data),
+            result_trait_set,
+            self.__library,
+        )
 
     @classmethod
     def __parse_entity_ref(cls, entity_ref: str) -> bal.EntityInfo:
