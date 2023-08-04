@@ -152,8 +152,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
             try:
                 entity_info = self.__parse_entity_ref(ref.toString())
                 result = bal.exists(entity_info, self.__library)
-            except MalformedEntityReference as exc:
-                result = MalformedEntityReference(str(exc))
+            except MalformedEntityReference:
+                result = False
             results.append(result)
         return results
 
