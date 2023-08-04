@@ -48,6 +48,8 @@ SETTINGS_KEY_LIBRARY_PATH = "library_path"
 SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
 SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME = "entity_reference_url_scheme"
 
+VERSION_TAG_LATEST = "latest"
+
 
 # TODO(TC): @pylint-disable
 # As we are building out the implementation vertically, we have known
@@ -190,8 +192,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 if VersionTrait.kId in traitSet:
                     version_trait = VersionTrait(result)
                     version_trait.setStableTag(str(entity.version))
-                    if entity_info.version:
-                        version_trait.setSpecifiedTag(str(entity_info.version))
+                    version_trait.setSpecifiedTag(str(entity_info.version or VERSION_TAG_LATEST))
 
                 successCallback(idx, result)
             except Exception as exc:  # pylint: disable=broad-except
@@ -387,11 +388,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
         if "v" not in query_params:
             return None
 
+        v_str = query_params["v"][-1]
+        if v_str == VERSION_TAG_LATEST:
+            return None
+
         try:
-            v = int(query_params["v"][-1])
+            v = int(v_str)
         except ValueError as exc:
             raise MalformedEntityReference(
-                "Version query parameter 'v' must be an int", entity_ref
+                f"Version query parameter 'v' must be an int or '{VERSION_TAG_LATEST}'", entity_ref
             ) from exc
         if v < 1:
             raise MalformedEntityReference(

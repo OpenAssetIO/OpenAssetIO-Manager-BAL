@@ -412,6 +412,9 @@ class Test_entityExists_version_query_param(FixtureAugmentedTestCase):
             with self.subTest(v=i):
                 self.assertEntityExists("anAsset⭐︎", f"{i}", True)
 
+    def test_when_v_is_the_string_latest_then_true_returned(self):
+        self.assertEntityExists("anAsset⭐︎", "latest", True)
+
     def test_when_v_is_greater_than_latest_then_false_returned(self):
         self.assertEntityExists("anAsset⭐︎", "3", False)
 
@@ -420,7 +423,7 @@ class Test_entityExists_version_query_param(FixtureAugmentedTestCase):
 
     def test_when_v_is_not_an_int_then_batch_element_error_is_returned(self):
         self.assertMalformedReferenceError(
-            "anAsset⭐︎", "cabbage", "Version query parameter 'v' must be an int"
+            "anAsset⭐︎", "cabbage", "Version query parameter 'v' must be an int or 'latest'"
         )
 
     def test_when_v_is_less_than_one_then_batch_element_error_is_returned(self):
@@ -473,6 +476,9 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
     def test_when_v_is_valid_integer_corresponding_entity_resolved_with_version_trait(self):
         self.assertVersioning("anAsset⭐︎", "1", "1")
 
+    def test_when_v_is_the_string_latest_then_latest_is_resolved_with_version_trait(self):
+        self.assertVersioning("anAsset⭐︎", "latest", "2")
+
     def test_when_v_is_greater_than_latest_then_resolution_error_returned(self):
         with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
             self.assertVersioning("anAsset⭐︎", "3", "")
@@ -483,7 +489,7 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
 
     def test_when_v_is_not_an_integer_then_error_is_returned(self):
         with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
-            self.assertVersioning("anAsset⭐︎", "latest", "")
+            self.assertVersioning("anAsset⭐︎", "cabbage", "")
 
     def assertVersioning(self, entity_name, specified_tag, expected_stable):
         """
@@ -504,7 +510,7 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
         self.assertEqual(data.getTraitProperty("expected-version", "tag"), expected_stable)
 
         version_trait = openassetio_mediacreation.traits.lifecycle.VersionTrait(data)
-        self.assertEqual(version_trait.getSpecifiedTag(), specified_tag)
+        self.assertEqual(version_trait.getSpecifiedTag(), specified_tag or "latest")
         self.assertEqual(version_trait.getStableTag(), expected_stable)
 
 
