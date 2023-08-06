@@ -85,7 +85,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return "Basic Asset Library 📖"
 
     def info(self):
-        return {constants.kField_EntityReferencesMatchPrefix: self.__entity_refrence_prefix()}
+        return {constants.kInfoKey_EntityReferencesMatchPrefix: self.__entity_refrence_prefix()}
 
     def settings(self, hostSession):
         return self.__settings.copy()

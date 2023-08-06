@@ -85,7 +85,9 @@ fixtures = {
     "Test_identifier": {"test_matches_fixture": {"identifier": IDENTIFIER}},
     "Test_displayName": {"test_matches_fixture": {"display_name": "Basic Asset Library 📖"}},
     "Test_info": {
-        "test_matches_fixture": {"info": {constants.kField_EntityReferencesMatchPrefix: "bal:///"}}
+        "test_matches_fixture": {
+            "info": {constants.kInfoKey_EntityReferencesMatchPrefix: "bal:///"}
+        }
     },
     "Test_initialize": {
         "shared": {
