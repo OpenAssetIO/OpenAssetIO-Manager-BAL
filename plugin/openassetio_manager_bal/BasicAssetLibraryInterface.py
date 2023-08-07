@@ -21,9 +21,12 @@ A single-class module, providing the BasicAssetLibraryInterface class.
 """
 
 import os
+import re
 import time
 
 from functools import wraps
+from urllib.parse import urlparse
+
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
@@ -34,6 +37,10 @@ from . import bal
 __all__ = [
     "BasicAssetLibraryInterface",
 ]
+
+SETTINGS_KEY_LIBRARY_PATH = "library_path"
+SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
+SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME = "entity_reference_url_scheme"
 
 
 # TODO(TC): @pylint-disable
@@ -63,12 +70,11 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ManagerInterface.
     """
 
-    __reference_prefix = "bal:///"
     __lib_path_envvar_name = "BAL_LIBRARY_PATH"
 
     def __init__(self):
         super().__init__()
-        self.__settings = bal.make_default_settings()
+        self.__settings = self.__make_default_settings()
         self.__library = {}
 
     def identifier(self):
@@ -79,7 +85,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return "Basic Asset Library 📖"
 
     def info(self):
-        return {constants.kField_EntityReferencesMatchPrefix: self.__reference_prefix}
+        return {constants.kInfoKey_EntityReferencesMatchPrefix: self.__entity_refrence_prefix()}
 
     def settings(self, hostSession):
         return self.__settings.copy()
@@ -93,10 +99,10 @@ class BasicAssetLibraryInterface(ManagerInterface):
         This is read-only - updating the latency must be done via the
         settings mechanism, i.e. re-`initialize` the plugin.
         """
-        return self.__settings.get(bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0)
+        return self.__settings.get(SETTINGS_KEY_SIMULATED_QUERY_LATENCY, 0)
 
     def initialize(self, managerSettings, hostSession):
-        bal.validate_settings(managerSettings)
+        self.__validate_settings(managerSettings)
 
         # Settings updates can be partial, so make sure we keep any
         # existing path.
@@ -127,7 +133,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         hostSession.logger().log(
             hostSession.logger().Severity.kDebug,
             f"Running with simulated query latency of "
-            f"{self.__settings[bal.SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
+            f"{self.__settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
         )
 
     def managementPolicy(self, traitSets, context, hostSession):
@@ -138,17 +144,17 @@ class BasicAssetLibraryInterface(ManagerInterface):
         ]
 
     def isEntityReferenceString(self, someString, hostSession):
-        return someString.startswith(self.__reference_prefix)
+        return someString.startswith(self.__entity_refrence_prefix())
 
     @simulated_delay
     def entityExists(self, entityRefs, context, hostSession):
         results = []
         for ref in entityRefs:
             try:
-                entity_info = bal.parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString())
                 result = bal.exists(entity_info, self.__library)
-            except bal.MalformedBALReference as exc:
-                result = MalformedEntityReference(str(exc))
+            except MalformedEntityReference:
+                result = False
             results.append(result)
         return results
 
@@ -166,7 +172,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
         for idx, ref in enumerate(entityReferences):
             try:
-                entity_info = bal.parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString())
                 entity = bal.entity(entity_info, self.__library)
                 result = TraitsData()
                 for trait in traitSet:
@@ -184,7 +190,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         # Support publishing to any valid entity reference
         for idx, ref in enumerate(targetEntityRefs):
             try:
-                bal.parse_entity_ref(ref.toString())
+                self.__parse_entity_ref(ref.toString())
                 successCallback(idx, ref)
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
@@ -201,7 +207,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, ref in enumerate(targetEntityRefs):
             try:
-                entity_info = bal.parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString())
                 traits_dict = self.__traits_data_to_dict(entityTraitsDatas[idx])
                 updated_entity_info = bal.create_or_update_entity(
                     entity_info, traits_dict, self.__library
@@ -223,7 +229,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, entity_ref in enumerate(entityReferences):
             try:
-                entity_info = bal.parse_entity_ref(entity_ref.toString())
+                entity_info = self.__parse_entity_ref(entity_ref.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationshipTraitsData),
@@ -247,7 +253,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
-                entity_info = bal.parse_entity_ref(entityReference.toString())
+                entity_info = self.__parse_entity_ref(entityReference.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationship),
@@ -272,7 +278,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, entity_ref in enumerate(entityReferences):
             try:
-                entity_info = bal.parse_entity_ref(entity_ref.toString())
+                entity_info = self.__parse_entity_ref(entity_ref.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationshipTraitsData),
@@ -304,7 +310,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
-                entity_info = bal.parse_entity_ref(entityReference.toString())
+                entity_info = self.__parse_entity_ref(entityReference.toString())
                 relations = bal.related_references(
                     entity_info,
                     self.__traits_data_to_dict(relationship),
@@ -322,12 +328,30 @@ class BasicAssetLibraryInterface(ManagerInterface):
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
+    @staticmethod
+    def __parse_entity_ref(entity_ref: str) -> bal.EntityInfo:
+        """
+        Decomposes an entity reference into bal fields.
+        """
+        uri_parts = urlparse(entity_ref)
+
+        if len(uri_parts.path) <= 1:
+            raise MalformedEntityReference("Missing entity name in path component", entity_ref)
+
+        # path will start with a /
+        name = uri_parts.path[1:]
+
+        return bal.EntityInfo(name=name)
+
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
         Builds an openassetio EntityReference from a BAL EntityInfo
         """
-        ref_string = f"bal:///{entity_info.name}"
+        ref_string = f"{self.__entity_refrence_prefix()}{entity_info.name}"
         return self._createEntityReference(ref_string)
+
+    def __entity_refrence_prefix(self):
+        return f"{self.__settings[SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME]}:///"
 
     @classmethod
     def __dict_to_traits_data(cls, traits_dict: dict):
@@ -362,7 +386,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         """
         msg = str(exc)
 
-        if isinstance(exc, bal.MalformedBALReference):
+        if isinstance(exc, MalformedEntityReference):
             code = BatchElementError.ErrorCode.kMalformedEntityReference
         elif isinstance(exc, bal.UnknownBALEntity):
             code = BatchElementError.ErrorCode.kEntityResolutionError
@@ -370,6 +394,56 @@ class BasicAssetLibraryInterface(ManagerInterface):
             raise exc
 
         error_callback(idx, BatchElementError(code, msg))
+
+    @staticmethod
+    def __make_default_settings() -> dict:
+        """
+        Generates a default settings dict for BAL.
+        Note: as a library is required, the default settings are not enough
+        to initialize the manager.
+        """
+        return {
+            SETTINGS_KEY_LIBRARY_PATH: "",
+            SETTINGS_KEY_SIMULATED_QUERY_LATENCY: 10,
+            SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME: "bal",
+        }
+
+    @staticmethod
+    def __validate_settings(settings: dict):
+        """
+        Parses the supplied settings dict, raising if there are any
+        unrecognized keys present.
+        """
+        defaults = BasicAssetLibraryInterface.__make_default_settings()
+
+        if SETTINGS_KEY_LIBRARY_PATH in settings:
+            if not isinstance(settings[SETTINGS_KEY_LIBRARY_PATH], str):
+                raise ValueError(f"{SETTINGS_KEY_LIBRARY_PATH} must be a str")
+
+        if SETTINGS_KEY_SIMULATED_QUERY_LATENCY in settings:
+            query_latency = settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]
+            # This bool check is because bools are also ints as far as
+            # python is concerned.
+            if isinstance(query_latency, bool) or not isinstance(query_latency, (int, float)):
+                raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must be a number")
+            if query_latency < 0:
+                raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must not be negative")
+
+        if SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME in settings:
+            scheme = settings[SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME]
+            if not isinstance(scheme, str):
+                raise ValueError(f"{SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME} must be a string")
+            if not scheme:
+                raise ValueError(f"{SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME} must not be empty")
+            if not re.match(r"^[a-zA-Z0-9-]+$", scheme):
+                raise ValueError(
+                    f"{SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME} '{scheme}' must only consist of "
+                    "legal URL scheme characters (a-z, A-Z, 0-9, -)"
+                )
+
+        for key in settings:
+            if key not in defaults:
+                raise KeyError(f"Unknown setting '{key}'")
 
 
 class BALEntityReferencePagerInterface(EntityReferencePagerInterface):

@@ -1,10 +1,27 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+--------------
+
+### Breaking changes
+
+- Refactored entity reference handling, resulting in a change to
+  exception message formatting for malformed entity references.
+
+- Fixed return of `entityExists` when the input ref is invalid, this now
+  returns `False` for that element instead of raising an exception.
+
+### New features
+
+- The entity reference scheme consumed by BAL can be adjusted from the
+  default of `bal` using the `entity_reference_url_scheme` setting.
+  This must be set to a simple alphanumeric string.
+
 v1.0.0-alpha.9
 --------------
 
-### Breaking Changes
+### Breaking changes
 
 - Minimum OpenAssetIO version increased to `v1.0.0-alpha.13` due to API
   changes.

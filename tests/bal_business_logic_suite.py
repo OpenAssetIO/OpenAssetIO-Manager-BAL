@@ -25,7 +25,7 @@ import os
 
 from unittest import mock
 
-from openassetio import Context, TraitsData
+from openassetio import constants, Context, TraitsData
 from openassetio.exceptions import PluginError
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
@@ -103,6 +103,60 @@ class Test_initialize_library_path(FixtureAugmentedTestCase):
         os.environ[LIBRARY_PATH_VARNAME] = self.alt_lib_path
         self._manager.initialize({"library_path": ""})
         self.assertEqual(self._manager.settings()["library_path"], self.alt_lib_path)
+
+
+class Test_initialize_entity_reference_scheme(FixtureAugmentedTestCase):
+    shareManager = False
+
+    def test_when_not_set_then_default_is_bal(self):
+        self.initialize_and_assert_scheme()
+
+    def test_when_set_with_valid_scheme_then_used(self):
+        for scheme in ("mal", "some-very-long-string", "bal2"):
+            with self.subTest(scheme=scheme):
+                self.initialize_and_assert_scheme(scheme)
+
+    def test_when_set_with_invalid_sceheme_then_exception_raised(self):
+        for scheme in ("", "c://b", "no_us", "sadly no 🦆", "or spaces", 234, False):
+            with self.subTest(scheme=scheme):
+                with self.assertRaises(ValueError):
+                    self.initialize_and_assert_scheme(scheme)
+
+    def initialize_and_assert_scheme(self, scheme=None):
+        settings = {
+            "library_path": os.path.join(resources_path(), "library_apiComplianceSuite.json")
+        }
+        if scheme is not None:
+            settings["entity_reference_url_scheme"] = scheme
+        else:
+            scheme = "bal"
+
+        prefix = f"{scheme}:///"
+
+        self._manager.initialize(settings)
+
+        # Assert prefix used for short-circuit optimization
+        self.assertEqual(
+            self._manager.info()[constants.kInfoKey_EntityReferencesMatchPrefix], prefix
+        )
+
+        context = self.createTestContext()
+
+        # Assert prefix used for queries
+        ref = self._manager.createEntityReference(f"{prefix}anAsset⭐︎")
+        self.assertTrue(self._manager.entityExists([ref], context)[0])
+
+        # Assert prefix used to generate new references
+        published_refs = [None]
+        context.access = Context.Access.kWrite
+        self._manager.register(
+            [self._manager.createEntityReference(f"{prefix}a_new_entity_for_scheme_{scheme}")],
+            [TraitsData({"someTrait"})],
+            context,
+            lambda idx, published_ref: operator.setitem(published_refs, idx, published_ref),
+            lambda _, err: self.fail(f"Failed to create new entity: {err.code} {err.message}"),
+        )
+        self.assertTrue(str(published_refs[0]).startswith(prefix))
 
 
 class Test_managementPolicy_missing_completely(LibraryOverrideTestCase):
@@ -434,3 +488,7 @@ class Test_register(FixtureAugmentedTestCase):
 
         context.access = old_access
         return published_refs[0]
+
+
+def resources_path():
+    return os.path.join(os.path.dirname(__file__), "resources")

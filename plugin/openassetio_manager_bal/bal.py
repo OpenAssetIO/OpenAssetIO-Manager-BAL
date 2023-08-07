@@ -31,10 +31,6 @@ import string
 
 from dataclasses import dataclass
 from typing import Dict, List, Set, Optional
-from urllib.parse import urlparse
-
-SETTINGS_KEY_LIBRARY_PATH = "library_path"
-SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
 
 
 @dataclass
@@ -71,40 +67,6 @@ class Relation:
     entity_infos: List[EntityInfo]
 
 
-def make_default_settings() -> dict:
-    """
-    Generates a default settings dict for BAL.
-    Note: as a library is required, the default settings are not enough
-    to initialize the manager.
-    """
-    return {SETTINGS_KEY_LIBRARY_PATH: "", SETTINGS_KEY_SIMULATED_QUERY_LATENCY: 10}
-
-
-def validate_settings(settings: dict):
-    """
-    Parses the supplied settings dict, raising if there are any
-    unrecognized keys present.
-    """
-
-    defaults = make_default_settings()
-
-    if SETTINGS_KEY_LIBRARY_PATH in settings:
-        if not isinstance(settings[SETTINGS_KEY_LIBRARY_PATH], str):
-            raise ValueError(f"{SETTINGS_KEY_LIBRARY_PATH} must be a str")
-    if SETTINGS_KEY_SIMULATED_QUERY_LATENCY in settings:
-        query_latency = settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]
-        # This bool check is because bools are also ints as far as
-        # python is concerned.
-        if isinstance(query_latency, bool) or not isinstance(query_latency, (int, float)):
-            raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must be a number")
-        if query_latency < 0:
-            raise ValueError(f"{SETTINGS_KEY_SIMULATED_QUERY_LATENCY} must not be negative")
-
-    for key in settings:
-        if key not in defaults:
-            raise KeyError(f"Unknown setting '{key}'")
-
-
 def load_library(path: str) -> dict:
     """
     Loads a library from the supplied path
@@ -126,21 +88,6 @@ def load_library(path: str) -> dict:
     subs_vars["bal_library_dir"] = lib_dir
 
     return library
-
-
-def parse_entity_ref(entity_ref: str) -> EntityInfo:
-    """
-    Decomposes an entity reference into bal fields.
-    """
-    uri_parts = urlparse(entity_ref)
-
-    if len(uri_parts.path) <= 1:
-        raise MalformedBALReference("Missing entity name in path component", entity_ref)
-
-    # path will start with a /
-    name = uri_parts.path[1:]
-
-    return EntityInfo(name=name)
 
 
 def exists(entity_info: EntityInfo, library: dict) -> bool:
@@ -339,13 +286,3 @@ class UnknownBALEntity(RuntimeError):
 
     def __init__(self, entity_info: EntityInfo):
         super().__init__(f"Entity '{entity_info.name}' not found")
-
-
-class MalformedBALReference(RuntimeError):
-    """
-    An exception raised for a reference that is missing an entity name
-    or other required part.
-    """
-
-    def __init__(self, message, reference: str):
-        super().__init__(f"Malformed BAL reference: {message} '{reference}'")

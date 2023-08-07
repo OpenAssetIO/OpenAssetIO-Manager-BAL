@@ -45,9 +45,7 @@ IDENTIFIER = "org.openassetio.examples.manager.bal"
 VALID_REF = "bal:///references/can/contain/🐠"
 NON_REF = "not a Ŕeference"
 MALFORMED_REF = "bal:///"
-ERROR_MSG_MALFORMED_REF = (
-    "Malformed BAL reference: Missing entity name in path component 'bal:///'"
-)
+ERROR_MSG_MALFORMED_REF = "Missing entity name in path component (bal:///)"
 MISSING_REF = "bal:///missing_entity"
 ERROR_MSG_MISSING_ENTITY = "Entity 'missing_entity' not found"
 
@@ -87,7 +85,9 @@ fixtures = {
     "Test_identifier": {"test_matches_fixture": {"identifier": IDENTIFIER}},
     "Test_displayName": {"test_matches_fixture": {"display_name": "Basic Asset Library 📖"}},
     "Test_info": {
-        "test_matches_fixture": {"info": {constants.kField_EntityReferencesMatchPrefix: "bal:///"}}
+        "test_matches_fixture": {
+            "info": {constants.kInfoKey_EntityReferencesMatchPrefix: "bal:///"}
+        }
     },
     "Test_initialize": {
         "shared": {

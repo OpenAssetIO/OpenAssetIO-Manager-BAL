@@ -45,6 +45,10 @@ manager behavior.
   > is the mechanism by which the delay is triggered.
   > Simulated query latency defaults to 10ms.
 
+- The entity reference URL scheme consumed by BAL can be adjusted from the
+  default of `bal` using the `entity_reference_url_scheme` setting.
+  This must be set to a simple alphanumeric string.
+
 ## Installation
 
 To use the plugin in an OpenAssetIO host, install via `pip`, or set (or append) the
