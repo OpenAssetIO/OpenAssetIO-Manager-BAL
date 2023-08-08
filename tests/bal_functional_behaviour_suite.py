@@ -65,10 +65,12 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         )
 
     def test_when_preflight_called_then_results_delayed_by_specified_simulated_query_latency(self):
+        entity_references = self.create_test_entity_references()
+        traits_datas = [TraitsData({"string"})] * len(entity_references)
         self.__check_simulated_latencies_with_callbacks(
             self._manager.preflight,
-            self.create_test_entity_references(),
-            {"string"},
+            entity_references,
+            traits_datas,
             self.createTestContext(access=Context.Access.kRead),
         )
 

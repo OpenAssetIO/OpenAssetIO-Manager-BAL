@@ -393,14 +393,14 @@ class Test_preflight(FixtureAugmentedTestCase):
             self._manager.createEntityReference(s)
             for s in ["bal:///A ref to a 🐔", "bal:///anotherRef"]
         ]
-        trait_set = {"a_trait", "another_trait"}
+        traits_datas = [TraitsData()] * len(entity_references)
         context = self.createTestContext(access=Context.Access.kWrite)
 
         result_references = [None] * len(entity_references)
 
         self._manager.preflight(
             entity_references,
-            trait_set,
+            traits_datas,
             context,
             lambda idx, ref: operator.setitem(result_references, idx, ref),
             lambda _idx, _err: self.fail("Preflight should not error for this input"),
