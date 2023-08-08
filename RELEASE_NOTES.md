@@ -18,6 +18,13 @@ v1.0.0-alpha.x
   default of `bal` using the `entity_reference_url_scheme` setting.
   This must be set to a simple alphanumeric string.
 
+### Bug fixes
+
+- Added missing fixtures for the `openassetio.test.manager` API
+  compliance suite test harness.
+  [#61](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/61)
+
+
 v1.0.0-alpha.9
 --------------
 

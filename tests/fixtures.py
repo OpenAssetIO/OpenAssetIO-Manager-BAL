@@ -31,6 +31,7 @@ from openassetio import constants
 test_library_path = os.path.join(
     os.path.dirname(__file__), "resources", "library_apiComplianceSuite.json"
 )
+blank_library_path = os.path.join(os.path.dirname(__file__), "resources", "library_empty.json")
 test_libray = {}
 
 with open(test_library_path, "r", encoding="utf-8") as file:
@@ -90,14 +91,24 @@ fixtures = {
         }
     },
     "Test_initialize": {
-        "shared": {
+        "test_when_settings_have_all_keys_then_all_settings_updated": {
+            "some_settings_with_all_keys": {
+                "library_path": blank_library_path,
+                "simulated_query_latency_ms": 0,
+                "entity_reference_url_scheme": "thingy",
+            }
+        },
+        "test_when_settings_have_invalid_keys_then_all_settings_unchanged": {
             "some_settings_with_new_values_and_invalid_keys": {"library_path": "", "cat": True}
         },
-        "test_when_settings_expanded_then_manager_settings_updated": {
-            "some_settings_with_all_keys": {"library_path": ""}
+        "test_when_settings_have_invalid_keys_then_raises_KeyError": {
+            "some_settings_with_new_values_and_invalid_keys": {"library_path": "", "cat": True}
+        },
+        "test_when_settings_have_subset_of_keys_then_other_settings_unchanged": {
+            "some_settings_with_a_subset_of_keys": {"simulated_query_latency_ms": 2}
         },
         "test_when_subset_of_settings_modified_then_other_settings_unchanged": {
-            "some_settings_with_a_subset_of_keys": {}
+            "some_settings_with_a_subset_of_keys": {"simulated_query_latency_ms": 2}
         },
     },
     "Test_entityExists": {
@@ -135,6 +146,10 @@ fixtures = {
     "Test_getWithRelationship_All": {
         "test_when_relation_unknown_then_no_pages_returned": {"a_reference": RELATEABLE_REF},
         "test_when_multiple_relationship_types_then_same_number_of_returned_relationships": {
+            "a_reference": RELATEABLE_REF,
+            "a_relationship_trait_set": known_relationship_traitset,
+        },
+        "test_when_batched_then_same_number_of_returned_relationships": {
             "a_reference": RELATEABLE_REF,
             "a_relationship_trait_set": known_relationship_traitset,
         },
