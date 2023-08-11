@@ -29,11 +29,22 @@ jobs:
         with:
           python-version: "3.9"
 
+      - name: Download wheels from commit OpenAssetIO main
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: build-wheels.yml
+          workflow_conclusion: success
+          name: openassetio-wheels
+          repo: OpenAssetIO/OpenAssetIO
+          path: deps
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install setuptools wheel
-          python -m pip install -r requirements.txt
+          # Use wheels from feature branch for intermediate testing
+          python -m pip install ./deps/openassetio-*cp39*-manylinux_*_x86_64.whl
+          # python -m pip install -r requirements.txt
 
       - name: Build wheels
         run: pip wheel --no-deps --wheel-dir wheelhouse .
