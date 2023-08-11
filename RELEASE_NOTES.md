@@ -9,8 +9,7 @@ v1.0.0-alpha.x
 - Refactored entity reference handling, resulting in a change to
   exception message formatting for malformed entity references.
 
-- Fixed return of `entityExists` when the input ref is invalid, this now
-  returns `False` for that element instead of raising an exception.
+- Migrated `entityExists` to the batch-first callback based signature.
 
 ### New features
 

@@ -144,7 +144,15 @@ class Test_initialize_entity_reference_scheme(FixtureAugmentedTestCase):
 
         # Assert prefix used for queries
         ref = self._manager.createEntityReference(f"{prefix}anAsset⭐︎")
-        self.assertTrue(self._manager.entityExists([ref], context)[0])
+
+        self._manager.entityExists(
+            [ref],
+            context,
+            lambda idx, exists: self.assertTrue(exists),
+            lambda idx, error: self.fail(
+                f"Failed to check existence of reference: {error.message}"
+            ),
+        )
 
         # Assert prefix used to generate new references
         published_refs = [None]
@@ -420,7 +428,14 @@ class Test_register(FixtureAugmentedTestCase):
         published_entity_ref = self.__create_test_entity(new_entity_ref, data, context)
 
         context.access = Context.Access.kRead
-        self.assertTrue(self._manager.entityExists([published_entity_ref], context)[0])
+        self._manager.entityExists(
+            [published_entity_ref],
+            context,
+            lambda idx, exists: self.assertTrue(exists),
+            lambda idx, error: self.fail(
+                f"Failed to check existence of reference: {error.message}"
+            ),
+        )
         self.assertEqual(published_entity_ref, new_entity_ref)
 
     def test_when_ref_exists_then_entity_updated_with_same_reference(self):
@@ -470,9 +485,16 @@ class Test_register(FixtureAugmentedTestCase):
         old_access = context.access
 
         context.access = Context.Access.kRead
-        self.assertFalse(
-            self._manager.entityExists([ref], context)[0],
-            f"Entity '{ref.toString()}' already exists",
+
+        self._manager.entityExists(
+            [ref],
+            context,
+            lambda idx, exists: self.assertFalse(
+                exists, f"Entity '{ref.toString()}' already exists"
+            ),
+            lambda idx, error: self.fail(
+                f"Failed to check existence of reference: {error.message}"
+            ),
         )
 
         published_refs = [None]

@@ -114,8 +114,18 @@ fixtures = {
     "Test_entityExists": {
         "shared": {
             "a_reference_to_an_existing_entity": f"bal:///{an_existing_entity_name}",
+        },
+        "test_when_querying_existing_reference_then_true_is_returned": {},
+        "test_when_querying_nonexisting_reference_then_false_is_returned": {
+            "a_reference_to_a_nonexisting_entity": VALID_REF
+        },
+        "test_when_querying_existing_and_nonexisting_references_then_true_and_false_is_returned": {
             "a_reference_to_a_nonexisting_entity": VALID_REF,
-        }
+        },
+        "test_when_querying_malformed_reference_then_malformed_reference_error_is_returned": {
+            "a_malformed_reference": MALFORMED_REF,
+            "expected_error_message": ERROR_MSG_MALFORMED_REF,
+        },
     },
     "Test_resolve": {
         "shared": {

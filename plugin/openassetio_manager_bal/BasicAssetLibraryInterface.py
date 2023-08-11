@@ -147,15 +147,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return someString.startswith(self.__entity_refrence_prefix())
 
     @simulated_delay
-    def entityExists(self, entityRefs, context, hostSession):
+    def entityExists(self, entityRefs, _context, _hostSession, successCallback, errorCallback):
         results = []
-        for ref in entityRefs:
+        for idx, ref in enumerate(entityRefs):
             try:
                 entity_info = self.__parse_entity_ref(ref.toString())
                 result = bal.exists(entity_info, self.__library)
-            except MalformedEntityReference:
-                result = False
-            results.append(result)
+                successCallback(idx, result)
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
         return results
 
     @simulated_delay
