@@ -185,7 +185,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     @simulated_delay
     def preflight(
-        self, targetEntityRefs, traitSet, context, hostSession, successCallback, errorCallback
+        self, targetEntityRefs, traitsDatas, context, hostSession, successCallback, errorCallback
     ):
         # Support publishing to any valid entity reference
         for idx, ref in enumerate(targetEntityRefs):

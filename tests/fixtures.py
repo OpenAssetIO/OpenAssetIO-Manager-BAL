@@ -130,11 +130,27 @@ fixtures = {
         }
     },
     "Test_preflight": {
-        "shared": {
-            "a_reference_to_a_writable_entity": "bal:///someNewEntity",
-            "a_set_of_valid_traits": some_registerable_traitset,
-            "the_error_string_for_a_malformed_reference": ERROR_MSG_MALFORMED_REF,
-        }
+        "test_when_multiple_references_then_same_number_of_returned_references": {
+            "a_traits_data_for_preflight": TraitsData({"anything"}),
+            "a_reference_for_preflight": "bal:///someNewEntity",
+        },
+        "test_when_reference_is_read_only_then_access_error_is_returned": {
+            # Skipped: all BAL entities can be published to.
+            # "a_traits_data_for_preflight":
+            # "a_reference_to_a_readonly_entity":,
+            # "expected_error_message":
+        },
+        "test_when_reference_malformed_then_malformed_entity_reference_error_returned": {
+            "a_traits_data_for_preflight": TraitsData({"anything"}),
+            "a_malformed_reference": MALFORMED_REF,
+            "expected_error_message": ERROR_MSG_MALFORMED_REF,
+        },
+        "test_when_preflight_hint_invalid_then_invalid_preflight_hint_error_returned": {
+            # Skipped: all BAL entities can be published to.
+            # "an_invalid_traits_data_for_preflight":
+            # "a_reference_for_preflight":,
+            # "expected_error_message":
+        },
     },
     "Test_register": {
         "shared": {
