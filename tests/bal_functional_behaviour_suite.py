@@ -57,7 +57,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
     __test_query_latencies = [0, 2500.5, 5000]
 
     def test_when_resolve_called_then_results_delayed_by_specified_simulated_query_latency(self):
-        self.__check_simulated_latencies_with_callbacks(
+        self.__check_simulated_latencies(
             self._manager.resolve,
             self.create_test_entity_references(),
             {"string"},
@@ -67,7 +67,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
     def test_when_preflight_called_then_results_delayed_by_specified_simulated_query_latency(self):
         entity_references = self.create_test_entity_references()
         traits_datas = [TraitsData({"string"})] * len(entity_references)
-        self.__check_simulated_latencies_with_callbacks(
+        self.__check_simulated_latencies(
             self._manager.preflight,
             entity_references,
             traits_datas,
@@ -77,7 +77,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
     def test_when_entityExists_called_then_results_delayed_by_specified_simulated_query_latency(
         self,
     ):
-        self.__check_simulated_latencies_without_callbacks(
+        self.__check_simulated_latencies(
             self._manager.entityExists,
             self.create_test_entity_references(),
             self.createTestContext(access=Context.Access.kRead),
@@ -87,7 +87,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         entity_refs = self.create_test_entity_references()
         traits_datas = [TraitsData() for _ in entity_refs]
 
-        self.__check_simulated_latencies_with_callbacks(
+        self.__check_simulated_latencies(
             self._manager.register,
             entity_refs,
             traits_datas,
@@ -99,7 +99,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
     ):
         entity_refs = self.create_test_entity_references()
 
-        self.__check_simulated_latencies_with_callbacks(
+        self.__check_simulated_latencies(
             self._manager.getWithRelationship,
             entity_refs,
             TraitsData(),
@@ -112,7 +112,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         entity_ref = self.create_test_entity_references()[0]
         traits_datas = [TraitsData()] * 3
 
-        self.__check_simulated_latencies_with_callbacks(
+        self.__check_simulated_latencies(
             self._manager.getWithRelationships,
             entity_ref,
             traits_datas,
@@ -124,7 +124,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
     ):
         entity_refs = self.create_test_entity_references()
 
-        self.__check_simulated_latencies_with_callbacks(
+        self.__check_simulated_latencies(
             self._manager.getWithRelationshipPaged,
             entity_refs,
             TraitsData(),
@@ -138,7 +138,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         entity_ref = self.create_test_entity_references()[0]
         traits_datas = [TraitsData()] * 3
 
-        self.__check_simulated_latencies_with_callbacks(
+        self.__check_simulated_latencies(
             self._manager.getWithRelationshipsPaged,
             entity_ref,
             traits_datas,
@@ -236,15 +236,10 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         else:
             patched_time_sleep.assert_not_called()
 
-    def __check_simulated_latencies_with_callbacks(self, method, *args, **kwargs):
+    def __check_simulated_latencies(self, method, *args, **kwargs):
         for query_latency in self.__simulated_latency_subtests():
             with self.__assert_simulated_latency_applied(query_latency):
                 method(*args, mock.Mock(), mock.Mock(), **kwargs)
-
-    def __check_simulated_latencies_without_callbacks(self, method, *args, **kwargs):
-        for query_latency in self.__simulated_latency_subtests():
-            with self.__assert_simulated_latency_applied(query_latency):
-                method(*args, **kwargs)
 
     def __simulated_latency_subtests(self):
         for query_latency in self.__test_query_latencies:
