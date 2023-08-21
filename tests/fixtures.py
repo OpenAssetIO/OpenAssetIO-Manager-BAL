@@ -132,7 +132,9 @@ fixtures = {
             "a_reference_to_a_readable_entity": f"bal:///{an_existing_entity_name}",
             "a_set_of_valid_traits": {"string", "number"},
             "a_reference_to_a_readonly_entity": f"bal:///{an_existing_entity_name}",
-            "the_error_string_for_a_reference_to_a_readonly_entity": "BAL entities are read-only",
+            "the_error_string_for_a_reference_to_a_readonly_entity": (
+                "Unsupported access mode for resolve"
+            ),
             "a_reference_to_a_missing_entity": "bal:///missing_entity",
             "the_error_string_for_a_reference_to_a_missing_entity": ERROR_MSG_MISSING_ENTITY,
             "a_malformed_reference": MALFORMED_REF,

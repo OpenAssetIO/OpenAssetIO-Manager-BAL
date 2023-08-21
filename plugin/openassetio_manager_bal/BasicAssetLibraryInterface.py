@@ -25,9 +25,10 @@ import re
 import time
 
 from functools import wraps
+from typing import List, Any, Iterable
 from urllib.parse import urlparse, parse_qs
 
-from openassetio import constants, BatchElementError, EntityReference, TraitsData
+from openassetio import constants, BatchElementError, EntityReference, TraitsData, Context
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
 
@@ -145,7 +146,14 @@ class BasicAssetLibraryInterface(ManagerInterface):
         )
 
     def managementPolicy(self, traitSets, context, hostSession):
-        access = "read" if context.isForRead() else "write"
+        if context.isForRead():
+            access = "read"
+        elif context.access == Context.Access.kWrite:
+            access = "write"
+        else:
+            # kCreateRelated unsupported.
+            return [TraitsData() for _ in traitSets]
+
         return [
             self.__dict_to_traits_data(bal.management_policy(trait_set, access, self.__library))
             for trait_set in traitSets
@@ -155,8 +163,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return someString.startswith(self.__entity_refrence_prefix())
 
     @simulated_delay
-    def entityExists(self, entityRefs, _context, _hostSession, successCallback, errorCallback):
-        results = []
+    def entityExists(self, entityRefs, context, _hostSession, successCallback, errorCallback):
         for idx, ref in enumerate(entityRefs):
             try:
                 entity_info = self.__parse_entity_ref(ref.toString())
@@ -164,19 +171,19 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 successCallback(idx, result)
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
-        return results
 
     @simulated_delay
     def resolve(
         self, entityReferences, traitSet, context, hostSession, successCallback, errorCallback
     ):
         # pylint: disable=too-many-locals
-        if context.isForWrite():
-            result = BatchElementError(
-                BatchElementError.ErrorCode.kEntityAccessError, "BAL entities are read-only"
-            )
-            for idx in range(len(entityReferences)):
-                errorCallback(idx, result)
+        if not self.__validate_access(
+            "resolve",
+            (Context.Access.kRead,),
+            context,
+            entityReferences,
+            errorCallback,
+        ):
             return
 
         for idx, ref in enumerate(entityReferences):
@@ -202,6 +209,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def preflight(
         self, targetEntityRefs, traitsDatas, context, hostSession, successCallback, errorCallback
     ):
+        if not self.__validate_access(
+            "preflight",
+            (Context.Access.kWrite,),
+            context,
+            targetEntityRefs,
+            errorCallback,
+        ):
+            return
+
         for idx, ref in enumerate(targetEntityRefs):
             try:
                 # Remove version info from the reference, as publishing will
@@ -223,6 +239,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
         successCallback,
         errorCallback,
     ):
+        if not self.__validate_access(
+            "register",
+            (Context.Access.kWrite,),
+            context,
+            targetEntityRefs,
+            errorCallback,
+        ):
+            return
+
         for idx, ref in enumerate(targetEntityRefs):
             try:
                 entity_info = self.__parse_entity_ref(ref.toString())
@@ -245,6 +270,14 @@ class BasicAssetLibraryInterface(ManagerInterface):
         successCallback,
         errorCallback,
     ):
+        if not self.__validate_access(
+            "relationship query",
+            (Context.Access.kRead,),
+            context,
+            entityReferences,
+            errorCallback,
+        ):
+            return
         for idx, entity_ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(entity_ref.toString())
@@ -266,6 +299,14 @@ class BasicAssetLibraryInterface(ManagerInterface):
         successCallback,
         errorCallback,
     ):
+        if not self.__validate_access(
+            "relationship query",
+            (Context.Access.kRead,),
+            context,
+            relationshipTraitsDatas,
+            errorCallback,
+        ):
+            return
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
                 entity_info = self.__parse_entity_ref(entityReference.toString())
@@ -281,11 +322,19 @@ class BasicAssetLibraryInterface(ManagerInterface):
         relationshipTraitsData,
         resultTraitSet,
         pageSize,
-        _context,
+        context,
         _hostSession,
         successCallback,
         errorCallback,
     ):
+        if not self.__validate_access(
+            "relationship query",
+            (Context.Access.kRead,),
+            context,
+            entityReferences,
+            errorCallback,
+        ):
+            return
         for idx, entity_ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(entity_ref.toString())
@@ -313,11 +362,19 @@ class BasicAssetLibraryInterface(ManagerInterface):
         relationshipTraitsDatas,
         resultTraitSet,
         pageSize,
-        _context,
+        context,
         _hostSession,
         successCallback,
         errorCallback,
     ):
+        if not self.__validate_access(
+            "relationship query",
+            (Context.Access.kRead,),
+            context,
+            relationshipTraitsDatas,
+            errorCallback,
+        ):
+            return
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
                 entity_info = self.__parse_entity_ref(entityReference.toString())
@@ -448,6 +505,26 @@ class BasicAssetLibraryInterface(ManagerInterface):
         traits_data.addTrait(trait_id)
         for name, value in trait_properties.items():
             traits_data.setTraitProperty(trait_id, name, value)
+
+    def __validate_access(
+        self,
+        function_name: str,
+        allowed_access: Iterable[Context.Access],
+        context: Context,
+        batch_elems: List[Any],
+        error_callback,
+    ):
+        if context.access in allowed_access:
+            return True
+        for idx, _ in enumerate(batch_elems):
+            error_callback(
+                idx,
+                BatchElementError(
+                    BatchElementError.ErrorCode.kEntityAccessError,
+                    f"Unsupported access mode for {function_name}",
+                ),
+            )
+        return False
 
     @staticmethod
     def __handle_exception(exc, idx, error_callback):

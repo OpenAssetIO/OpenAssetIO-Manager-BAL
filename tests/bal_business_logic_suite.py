@@ -149,7 +149,7 @@ class Test_initialize_entity_reference_scheme(FixtureAugmentedTestCase):
             self._manager.info()[constants.kInfoKey_EntityReferencesMatchPrefix], prefix
         )
 
-        context = self.createTestContext()
+        context = self.createTestContext(Context.Access.kRead)
 
         # Assert prefix used for queries
         ref = self._manager.createEntityReference(f"{prefix}anAsset⭐︎")
@@ -288,6 +288,16 @@ class Test_managementPolicy_library_specified_behavior(LibraryOverrideTestCase):
 
         self.assertListEqual(actual, expected)
 
+    def test_returns_unsupported_policy_for_createRelated_for_all_trait_sets(self):
+        trait_sets = self.__read_trait_sets + self.__write_trait_sets
+
+        context = self.createTestContext(access=Context.Access.kCreateRelated)
+        expected = [TraitsData()] * len(trait_sets)
+
+        actual = self._manager.managementPolicy(trait_sets, context)
+
+        self.assertListEqual(actual, expected)
+
 
 class Test_resolve(FixtureAugmentedTestCase):
     """
@@ -334,6 +344,36 @@ class Test_resolve(FixtureAugmentedTestCase):
                 self.assertTrue(result.hasTrait(trait))
                 for property_, value in self.__entities[ref.toString()][trait].items():
                     self.assertEqual(result.getTraitProperty(trait, property_), value)
+
+    def test_when_unsupported_access_then_kEntityAccessError_returned(self):
+        entity_reference_str = next(iter(self.__entities.keys()))
+        entity_references = [self._manager.createEntityReference(entity_reference_str)]
+        trait_set = {"string", "number", "test-data"}
+
+        expected = [
+            BatchElementError(
+                BatchElementError.ErrorCode.kEntityAccessError,
+                "Unsupported access mode for resolve",
+            )
+        ]
+
+        for access in (Context.Access.kWrite, Context.Access.kCreateRelated):
+            with self.subTest(access=access):
+                context = self.createTestContext(access=Context.Access.kWrite)
+                actual = [None]
+
+                self._manager.resolve(
+                    entity_references,
+                    trait_set,
+                    context,
+                    lambda idx, _: self.fail(
+                        f"Unexpected success for '{entity_references[idx].toString()}'"
+                    ),
+                    # pylint: disable=cell-var-from-loop
+                    lambda idx, err: operator.setitem(actual, idx, err),
+                )
+
+                self.assertListEqual(actual, expected)
 
 
 class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
@@ -505,7 +545,7 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
         data = self._manager.resolve(
             self._manager.createEntityReference(ref_str),
             {"expected-version", VersionTrait.kId},
-            self.createTestContext(),
+            self.createTestContext(Context.Access.kRead),
         )
 
         self.assertEqual(data.getTraitProperty("expected-version", "tag"), expected_stable)
@@ -513,6 +553,82 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
         version_trait = openassetio_mediacreation.traits.lifecycle.VersionTrait(data)
         self.assertEqual(version_trait.getSpecifiedTag(), specified_tag or "latest")
         self.assertEqual(version_trait.getStableTag(), expected_stable)
+
+
+class Test_getWithRelationship_All(FixtureAugmentedTestCase):
+    # pylint: disable=cell-var-from-loop,unbalanced-tuple-unpacking
+    def test_when_unsupported_access_then_kEntityAccessError_returned(self):
+        entity_reference = self._manager.createEntityReference("bal:///entity/original")
+        relationship = TraitsData({"proxy"})
+        context = self.createTestContext()
+
+        expected = [
+            BatchElementError(
+                BatchElementError.ErrorCode.kEntityAccessError,
+                "Unsupported access mode for relationship query",
+            )
+        ]
+
+        for access in (Context.Access.kWrite, Context.Access.kCreateRelated):
+            context.access = access
+
+            with self.subTest("getWithRelationship", access=access):
+                actual = [None]
+                self._manager.getWithRelationship(
+                    [entity_reference],
+                    relationship,
+                    context,
+                    lambda _idx, _refs: self.fail("Unexpected success callback"),
+                    lambda idx, batch_element_error: operator.setitem(
+                        actual, idx, batch_element_error
+                    ),
+                )
+
+                self.assertListEqual(actual, expected)
+
+            with self.subTest("getWithRelationships", access=access):
+                actual = [None]
+                self._manager.getWithRelationships(
+                    entity_reference,
+                    [relationship],
+                    context,
+                    lambda _idx, _refs: self.fail("Unexpected success callback"),
+                    lambda idx, batch_element_error: operator.setitem(
+                        actual, idx, batch_element_error
+                    ),
+                )
+
+                self.assertListEqual(actual, expected)
+
+            with self.subTest("getWithRelationshipPaged", access=access):
+                actual = [None]
+                self._manager.getWithRelationshipPaged(
+                    [entity_reference],
+                    relationship,
+                    10,
+                    context,
+                    lambda _idx, _refs: self.fail("Unexpected success callback"),
+                    lambda idx, batch_element_error: operator.setitem(
+                        actual, idx, batch_element_error
+                    ),
+                )
+
+                self.assertListEqual(actual, expected)
+
+            with self.subTest("getWithRelationshipsPaged", access=access):
+                actual = [None]
+                self._manager.getWithRelationshipsPaged(
+                    entity_reference,
+                    [relationship],
+                    10,
+                    context,
+                    lambda _idx, _refs: self.fail("Unexpected success callback"),
+                    lambda idx, batch_element_error: operator.setitem(
+                        actual, idx, batch_element_error
+                    ),
+                )
+
+                self.assertListEqual(actual, expected)
 
 
 class Test_preflight(FixtureAugmentedTestCase):
@@ -535,6 +651,32 @@ class Test_preflight(FixtureAugmentedTestCase):
         )
 
         self.assertEqual(result_references, entity_references)
+
+    def test_when_unsupported_access_then_kEntityAccessError_returned(self):
+        entity_references = [self._manager.createEntityReference("bal:///something/new")]
+
+        expected = [
+            BatchElementError(
+                BatchElementError.ErrorCode.kEntityAccessError,
+                "Unsupported access mode for preflight",
+            )
+        ]
+
+        for access in (Context.Access.kRead, Context.Access.kCreateRelated):
+            with self.subTest(access=access):
+                actual = [None]
+                context = self.createTestContext(access=access)
+
+                self._manager.preflight(
+                    entity_references,
+                    [TraitsData()],
+                    context,
+                    lambda _idx, _ref: self.fail("Preflight should not succeed for this input"),
+                    # pylint: disable=cell-var-from-loop
+                    lambda idx, err: operator.setitem(actual, idx, err),
+                )
+
+                self.assertListEqual(actual, expected)
 
     def test_when_refs_versioned_then_v_query_param_removed(self):
         entity_references = [
@@ -628,6 +770,32 @@ class Test_register(FixtureAugmentedTestCase):
         self.assertEqual(resolved_data[0], data)
         self.assertNotEqual(resolved_data[0], original_data)
 
+    def test_when_unsupported_access_then_kEntityAccessError_returned(self):
+        entity_references = [self._manager.createEntityReference("bal:///something/new")]
+
+        expected = [
+            BatchElementError(
+                BatchElementError.ErrorCode.kEntityAccessError,
+                "Unsupported access mode for register",
+            )
+        ]
+
+        for access in (Context.Access.kRead, Context.Access.kCreateRelated):
+            with self.subTest(access=access):
+                actual = [None]
+                context = self.createTestContext(access=access)
+
+                self._manager.register(
+                    entity_references,
+                    [TraitsData()],
+                    context,
+                    lambda _idx, _ref: self.fail("Register should not succeed for this input"),
+                    # pylint: disable=cell-var-from-loop
+                    lambda idx, err: operator.setitem(actual, idx, err),
+                )
+
+                self.assertListEqual(actual, expected)
+
     def __create_test_entity(self, ref, data, context):
         """
         Creates a new entity in the library for testing.
@@ -715,9 +883,9 @@ class Test_getWithRelationship_versions(FixtureAugmentedTestCase):
         self._manager.getWithRelationship(
             [self._manager.createEntityReference("bal:///anAsset⭐︎")],
             relationship,
-            self.createTestContext(),
+            self.createTestContext(Context.Access.kRead),
             lambda idx, refs: result_refs.extend(refs),
-            lambda _, err: self.fail(f"Failed to query releationships: {err.core} {err.message}"),
+            lambda _, err: self.fail(f"Failed to query relationships: {err.code} {err.message}"),
         )
 
         self.assertEqual(
