@@ -42,6 +42,7 @@ class EntityInfo:
     """
 
     name: str
+    version: Optional[int]
 
 
 @dataclass
@@ -51,6 +52,7 @@ class Entity:
     relations, etc.
     """
 
+    version: int
     traits: Dict[str, dict]
     relations: List[dict]
 
@@ -94,7 +96,14 @@ def exists(entity_info: EntityInfo, library: dict) -> bool:
     """
     Determines if the supplied entity exists in the library
     """
-    return entity_info.name in library["entities"]
+    if entity_info.name not in library["entities"]:
+        return False
+
+    version_dict, _ = _entity_version_dict_and_tag(entity_info, library)
+    if not version_dict:
+        return False
+
+    return True
 
 
 def entity(entity_info: EntityInfo, library: dict) -> Entity:
@@ -108,15 +117,18 @@ def entity(entity_info: EntityInfo, library: dict) -> Entity:
     relations = [
         Relation(
             traits=relation["traits"],
-            entity_infos=[EntityInfo(name) for name in relation["entities"]],
+            entity_infos=[EntityInfo(name, version=None) for name in relation["entities"]],
         )
         for relation in entity_dict.get("relations", [])
     ]
 
-    version_dict = entity_dict["versions"][-1]
+    version_dict, version_idx = _entity_version_dict_and_tag(entity_info, library)
+    if not version_dict:
+        raise InvalidEntityVersion(entity_info)
+
     # Expand vars late to allow more flexibility
     expanded_version_dict = _copy_and_expand_trait_properties(version_dict, library)
-    return Entity(**expanded_version_dict, relations=relations)
+    return Entity(**expanded_version_dict, relations=relations, version=version_idx)
 
 
 def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
@@ -137,6 +149,28 @@ def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
         )
 
     return policy
+
+
+def versions(entity_info: EntityInfo, include_latest: bool, library: dict) -> List[EntityInfo]:
+    """
+    Retrieves a list of version of the entity, if include_latest is
+    true, then an EntityInfo that always retrieves the latest entity
+    will be prepended to the list. Entities are returned newest first.
+    """
+    results = []
+
+    entity_dict = _library_entity_dict(entity_info, library)
+    if entity_dict is None:
+        raise UnknownBALEntity(entity_info)
+
+    if include_latest:
+        results.append(EntityInfo(name=entity_info.name, version=None))
+
+    num_versions = len(entity_dict["versions"])
+    for i in range(num_versions, 0, -1):
+        results.append(EntityInfo(name=entity_info.name, version=i))
+
+    return results
 
 
 def related_references(
@@ -180,22 +214,40 @@ def create_or_update_entity(
     changed since the last version. Presently this appends a new
     version to the entity's version list with the updated data.
     """
-    version_dict = _next_entity_version_dict(entity_info, library)
+    version_dict, version_tag = _next_entity_version_dict_and_tag(entity_info, library)
     version_dict["traits"] = traits_dict
-    # For now, we just keep the same reference until we properly
-    # support versioning.
+    entity_info.version = version_tag
     return entity_info
 
 
-def _next_entity_version_dict(entity_info: EntityInfo, library: dict) -> dict:
+def _entity_version_dict_and_tag(
+    entity_info: EntityInfo, library: dict
+) -> (Optional[dict], Optional[int]):
     """
-    Creates and returns a new version entry for the supplied EntityInfo.
-    If this is a new entity, it will be created.
+    Returns the entity version dict and corresponding tag for the
+    specified entity, or None if that version does not exist.
+    """
+    entity_dict = _ensure_library_entity_dict(entity_info, library)
+    versions_list = entity_dict["versions"]
+
+    if entity_info.version:
+        version_index = entity_info.version - 1
+        if len(versions_list) <= version_index:
+            return None, None
+        return versions_list[version_index], entity_info.version
+
+    return versions_list[-1], len(versions_list)
+
+
+def _next_entity_version_dict_and_tag(entity_info: EntityInfo, library: dict) -> (dict, int):
+    """
+    Creates and returns a new version entry and its tag for the supplied
+    EntityInfo. If this is a new entity, it will be created.
     """
     entity_dict = _ensure_library_entity_dict(entity_info, library)
     version_dict = {"traits": {}}
     entity_dict["versions"].append(version_dict)
-    return version_dict
+    return version_dict, len(entity_dict["versions"])
 
 
 def _ensure_library_entity_dict(entity_info: EntityInfo, library: dict) -> dict:
@@ -286,3 +338,15 @@ class UnknownBALEntity(RuntimeError):
 
     def __init__(self, entity_info: EntityInfo):
         super().__init__(f"Entity '{entity_info.name}' not found")
+
+
+class InvalidEntityVersion(RuntimeError):
+    """
+    An exception raised for a reference to a non-existent version of
+    an existing entity.
+    """
+
+    def __init__(self, entity_info: EntityInfo):
+        super().__init__(
+            f"Entity '{entity_info.name}' does not have " f"a version {entity_info.version}"
+        )

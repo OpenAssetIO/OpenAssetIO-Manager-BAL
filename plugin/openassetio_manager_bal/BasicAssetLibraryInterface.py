@@ -25,11 +25,17 @@ import re
 import time
 
 from functools import wraps
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from openassetio import constants, BatchElementError, EntityReference, TraitsData
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
+
+from openassetio_mediacreation.traits.lifecycle import VersionTrait, StableTrait
+from openassetio_mediacreation.specifications.lifecycle import (
+    EntityVersionsRelationshipSpecification,
+    StableEntityVersionsRelationshipSpecification,
+)
 
 from . import bal
 
@@ -41,6 +47,8 @@ __all__ = [
 SETTINGS_KEY_LIBRARY_PATH = "library_path"
 SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
 SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME = "entity_reference_url_scheme"
+
+VERSION_TAG_LATEST = "latest"
 
 
 # TODO(TC): @pylint-disable
@@ -162,6 +170,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def resolve(
         self, entityReferences, traitSet, context, hostSession, successCallback, errorCallback
     ):
+        # pylint: disable=too-many-locals
         if context.isForWrite():
             result = BatchElementError(
                 BatchElementError.ErrorCode.kEntityAccessError, "BAL entities are read-only"
@@ -179,6 +188,12 @@ class BasicAssetLibraryInterface(ManagerInterface):
                     trait_data = entity.traits.get(trait)
                     if trait_data is not None:
                         self.__add_trait_to_traits_data(trait, trait_data, result)
+
+                if VersionTrait.kId in traitSet:
+                    version_trait = VersionTrait(result)
+                    version_trait.setStableTag(str(entity.version))
+                    version_trait.setSpecifiedTag(str(entity_info.version or VERSION_TAG_LATEST))
+
                 successCallback(idx, result)
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
@@ -187,11 +202,14 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def preflight(
         self, targetEntityRefs, traitsDatas, context, hostSession, successCallback, errorCallback
     ):
-        # Support publishing to any valid entity reference
         for idx, ref in enumerate(targetEntityRefs):
             try:
-                self.__parse_entity_ref(ref.toString())
-                successCallback(idx, ref)
+                # Remove version info from the reference, as publishing will
+                # will always create a new version.
+                # TODO(tc): Create a placeholder version
+                entity_info = self.__parse_entity_ref(ref.toString())
+                entity_info.version = None
+                successCallback(idx, self.__build_entity_ref(entity_info))
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
@@ -230,11 +248,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, entity_ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(entity_ref.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationshipTraitsData),
-                    resultTraitSet,
-                    self.__library,
+                relations = self.__get_relations(
+                    entity_info, relationshipTraitsData, resultTraitSet
                 )
                 successCallback(idx, [self.__build_entity_ref(info) for info in relations])
             except Exception as exc:  # pylint: disable=broad-except
@@ -254,12 +269,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
                 entity_info = self.__parse_entity_ref(entityReference.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationship),
-                    resultTraitSet,
-                    self.__library,
-                )
+                relations = self.__get_relations(entity_info, relationship, resultTraitSet)
                 successCallback(idx, [self.__build_entity_ref(info) for info in relations])
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
@@ -328,8 +338,37 @@ class BasicAssetLibraryInterface(ManagerInterface):
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
-    @staticmethod
-    def __parse_entity_ref(entity_ref: str) -> bal.EntityInfo:
+    def __get_relations(self, entity_info, relationship_traits_data, result_trait_set):
+        relationship_trait_set = relationship_traits_data.traitSet()
+
+        # We don't use issuperset as otherwise we'd end up responding to
+        # any more specialized relationship definitions that may be
+        # added in the future, with incorrect results.
+        if relationship_trait_set in (
+            EntityVersionsRelationshipSpecification.kTraitSet,
+            StableEntityVersionsRelationshipSpecification.kTraitSet,
+        ):
+            include_latest = StableTrait.kId not in relationship_trait_set
+            versions = bal.versions(entity_info, include_latest, self.__library)
+            # Filter to a specific version if requested
+            specified_version = VersionTrait(relationship_traits_data).getSpecifiedTag()
+            if specified_version:
+                if specified_version == VERSION_TAG_LATEST:
+                    versions = [versions[0]]
+                else:
+                    versions = [i for i in versions if i.version == int(specified_version)]
+
+            return versions
+
+        return bal.related_references(
+            entity_info,
+            self.__traits_data_to_dict(relationship_traits_data),
+            result_trait_set,
+            self.__library,
+        )
+
+    @classmethod
+    def __parse_entity_ref(cls, entity_ref: str) -> bal.EntityInfo:
         """
         Decomposes an entity reference into bal fields.
         """
@@ -341,13 +380,47 @@ class BasicAssetLibraryInterface(ManagerInterface):
         # path will start with a /
         name = uri_parts.path[1:]
 
-        return bal.EntityInfo(name=name)
+        version = None
+
+        if uri_parts.query:
+            params = parse_qs(uri_parts.query)
+            version = cls.__version_from_query_params(params, entity_ref)
+
+        return bal.EntityInfo(name=name, version=version)
+
+    @staticmethod
+    def __version_from_query_params(query_params, entity_ref) -> int:
+        """
+        Determine the version based on the presence of 'v' in the
+        supplied query params.
+        """
+        if "v" not in query_params:
+            return None
+
+        v_str = query_params["v"][-1]
+        if v_str == VERSION_TAG_LATEST:
+            return None
+
+        try:
+            v = int(v_str)
+        except ValueError as exc:
+            raise MalformedEntityReference(
+                f"Version query parameter 'v' must be an int or '{VERSION_TAG_LATEST}'", entity_ref
+            ) from exc
+        if v < 1:
+            raise MalformedEntityReference(
+                "Version query parameter 'v' must be greater than 1", entity_ref
+            )
+
+        return v
 
     def __build_entity_ref(self, entity_info: bal.EntityInfo) -> EntityReference:
         """
         Builds an openassetio EntityReference from a BAL EntityInfo
         """
         ref_string = f"{self.__entity_refrence_prefix()}{entity_info.name}"
+        if entity_info.version:
+            ref_string += f"?v={entity_info.version}"
         return self._createEntityReference(ref_string)
 
     def __entity_refrence_prefix(self):
@@ -390,6 +463,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
             code = BatchElementError.ErrorCode.kMalformedEntityReference
         elif isinstance(exc, bal.UnknownBALEntity):
             code = BatchElementError.ErrorCode.kEntityResolutionError
+        elif isinstance(exc, bal.InvalidEntityVersion):
+            code = BatchElementError.ErrorCode.kMalformedEntityReference
         else:
             raise exc
 
