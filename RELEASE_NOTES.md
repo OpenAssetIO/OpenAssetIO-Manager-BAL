@@ -17,6 +17,10 @@ v1.0.0-alpha.x
 
 - Added a runtime dependency on the `openassetio-mediacreation` package.
 
+- Added validation to API methods to error on unsupported
+  `Context.Access` modes.
+  [#57](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/57)
+
 ### New features
 
 - The entity reference scheme consumed by BAL can be adjusted from the
