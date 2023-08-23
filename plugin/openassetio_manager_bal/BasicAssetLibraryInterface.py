@@ -25,10 +25,11 @@ import re
 import time
 
 from functools import wraps
-from typing import List, Any, Iterable
+from typing import Iterable, List, Any
 from urllib.parse import urlparse, parse_qs
 
-from openassetio import constants, BatchElementError, EntityReference, TraitsData, Context
+from openassetio import constants, BatchElementError, EntityReference, TraitsData
+from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
 from openassetio.exceptions import MalformedEntityReference, PluginError
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
 
@@ -145,17 +146,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
             f"{self.__settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
         )
 
-    def managementPolicy(self, traitSets, context, hostSession):
-        if context.isForRead():
-            access = "read"
-        elif context.access == Context.Access.kWrite:
-            access = "write"
-        else:
+    def managementPolicy(self, traitSets, access, context, hostSession):
+        access_keys = {PolicyAccess.kRead: "read", PolicyAccess.kWrite: "write"}
+        key = access_keys.get(access)
+        if not key:
             # kCreateRelated unsupported.
             return [TraitsData() for _ in traitSets]
 
         return [
-            self.__dict_to_traits_data(bal.management_policy(trait_set, access, self.__library))
+            self.__dict_to_traits_data(bal.management_policy(trait_set, key, self.__library))
             for trait_set in traitSets
         ]
 
@@ -174,13 +173,20 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     @simulated_delay
     def resolve(
-        self, entityReferences, traitSet, context, hostSession, successCallback, errorCallback
+        self,
+        entityReferences,
+        traitSet,
+        access,
+        context,
+        hostSession,
+        successCallback,
+        errorCallback,
     ):
         # pylint: disable=too-many-locals
         if not self.__validate_access(
             "resolve",
-            (Context.Access.kRead,),
-            context,
+            (ResolveAccess.kRead,),
+            access,
             entityReferences,
             errorCallback,
         ):
@@ -207,12 +213,19 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     @simulated_delay
     def preflight(
-        self, targetEntityRefs, traitsDatas, context, hostSession, successCallback, errorCallback
+        self,
+        targetEntityRefs,
+        traitsDatas,
+        access,
+        context,
+        hostSession,
+        successCallback,
+        errorCallback,
     ):
         if not self.__validate_access(
             "preflight",
-            (Context.Access.kWrite,),
-            context,
+            (PublishingAccess.kWrite,),
+            access,
             targetEntityRefs,
             errorCallback,
         ):
@@ -234,6 +247,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         self,
         targetEntityRefs,
         entityTraitsDatas,
+        access,
         context,
         hostSession,
         successCallback,
@@ -241,8 +255,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         if not self.__validate_access(
             "register",
-            (Context.Access.kWrite,),
-            context,
+            (PublishingAccess.kWrite,),
+            access,
             targetEntityRefs,
             errorCallback,
         ):
@@ -265,6 +279,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         entityReferences,
         relationshipTraitsData,
         resultTraitSet,
+        access,
         context,
         hostSession,
         successCallback,
@@ -272,8 +287,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         if not self.__validate_access(
             "relationship query",
-            (Context.Access.kRead,),
-            context,
+            (RelationsAccess.kRead,),
+            access,
             entityReferences,
             errorCallback,
         ):
@@ -294,6 +309,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         entityReference,
         relationshipTraitsDatas,
         resultTraitSet,
+        access,
         context,
         hostSession,
         successCallback,
@@ -301,8 +317,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         if not self.__validate_access(
             "relationship query",
-            (Context.Access.kRead,),
-            context,
+            (RelationsAccess.kRead,),
+            access,
             relationshipTraitsDatas,
             errorCallback,
         ):
@@ -322,6 +338,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         relationshipTraitsData,
         resultTraitSet,
         pageSize,
+        access,
         context,
         _hostSession,
         successCallback,
@@ -329,8 +346,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         if not self.__validate_access(
             "relationship query",
-            (Context.Access.kRead,),
-            context,
+            (RelationsAccess.kRead,),
+            access,
             entityReferences,
             errorCallback,
         ):
@@ -362,6 +379,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         relationshipTraitsDatas,
         resultTraitSet,
         pageSize,
+        access,
         context,
         _hostSession,
         successCallback,
@@ -369,8 +387,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         if not self.__validate_access(
             "relationship query",
-            (Context.Access.kRead,),
-            context,
+            (RelationsAccess.kRead,),
+            access,
             relationshipTraitsDatas,
             errorCallback,
         ):
@@ -509,12 +527,12 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def __validate_access(
         self,
         function_name: str,
-        allowed_access: Iterable[Context.Access],
-        context: Context,
+        allowed_access: Iterable,
+        access,
         batch_elems: List[Any],
         error_callback,
     ):
-        if context.access in allowed_access:
+        if access in allowed_access:
             return True
         for idx, _ in enumerate(batch_elems):
             error_callback(

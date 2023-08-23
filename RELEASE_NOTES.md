@@ -21,6 +21,10 @@ v1.0.0-alpha.x
   `Context.Access` modes.
   [#57](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/57)
 
+- Minimum OpenAssetIO version increased to v1.0.0-alpha.14 due to
+  breaking API changes.
+  [#1054](https://github.com/OpenAssetIO/OpenAssetIO/issues/1054)
+
 ### New features
 
 - The entity reference scheme consumed by BAL can be adjusted from the
