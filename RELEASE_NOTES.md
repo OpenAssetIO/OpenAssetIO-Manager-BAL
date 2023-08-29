@@ -17,8 +17,7 @@ v1.0.0-alpha.x
 
 - Added a runtime dependency on the `openassetio-mediacreation` package.
 
-- Added validation to API methods to error on unsupported
-  `Context.Access` modes.
+- Added validation to API methods to error on unsupported access modes.
   [#57](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/57)
 
 - Minimum OpenAssetIO version increased to v1.0.0-alpha.14 due to
