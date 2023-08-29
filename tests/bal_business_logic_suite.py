@@ -27,7 +27,8 @@ import os
 from unittest import mock
 
 import openassetio
-from openassetio import constants, Context, TraitsData, BatchElementError
+from openassetio import constants, TraitsData, BatchElementError
+from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
 from openassetio.exceptions import PluginError
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
@@ -149,7 +150,7 @@ class Test_initialize_entity_reference_scheme(FixtureAugmentedTestCase):
             self._manager.info()[constants.kInfoKey_EntityReferencesMatchPrefix], prefix
         )
 
-        context = self.createTestContext(Context.Access.kRead)
+        context = self.createTestContext()
 
         # Assert prefix used for queries
         ref = self._manager.createEntityReference(f"{prefix}anAsset⭐︎")
@@ -165,10 +166,10 @@ class Test_initialize_entity_reference_scheme(FixtureAugmentedTestCase):
 
         # Assert prefix used to generate new references
         published_refs = [None]
-        context.access = Context.Access.kWrite
         self._manager.register(
             [self._manager.createEntityReference(f"{prefix}a_new_entity_for_scheme_{scheme}")],
             [TraitsData({"someTrait"})],
+            PublishingAccess.kWrite,
             context,
             lambda idx, published_ref: operator.setitem(published_refs, idx, published_ref),
             lambda _, err: self.fail(f"Failed to create new entity: {err.code} {err.message}"),
@@ -186,10 +187,10 @@ class Test_managementPolicy_missing_completely(LibraryOverrideTestCase):
     def test_when_read_policy_queried_from_library_with_no_policies_then_raises_exception(
         self,
     ):
-        context = self.createTestContext(access=Context.Access.kRead)
+        context = self.createTestContext()
 
         with self.assertRaises(LookupError) as ex:
-            self._manager.managementPolicy([{"a trait"}], context)
+            self._manager.managementPolicy([{"a trait"}], PolicyAccess.kRead, context)
 
         self.assertEqual(
             str(ex.exception),
@@ -200,10 +201,10 @@ class Test_managementPolicy_missing_completely(LibraryOverrideTestCase):
     def test_when_write_policy_queried_from_library_with_no_policies_then_raises_exception(
         self,
     ):
-        context = self.createTestContext(access=Context.Access.kWrite)
+        context = self.createTestContext()
 
         with self.assertRaises(LookupError) as ex:
-            self._manager.managementPolicy([{"a trait"}], context)
+            self._manager.managementPolicy([{"a trait"}], PolicyAccess.kWrite, context)
 
         self.assertEqual(
             str(ex.exception),
@@ -223,10 +224,10 @@ class Test_managementPolicy_missing_default(LibraryOverrideTestCase):
     def test_when_read_policy_queried_from_library_missing_default_policy_then_raises_exception(
         self,
     ):
-        context = self.createTestContext(access=Context.Access.kRead)
+        context = self.createTestContext()
 
         with self.assertRaises(LookupError) as ex:
-            self._manager.managementPolicy([{"a trait"}], context)
+            self._manager.managementPolicy([{"a trait"}], PolicyAccess.kRead, context)
 
         self.assertEqual(
             str(ex.exception),
@@ -237,10 +238,10 @@ class Test_managementPolicy_missing_default(LibraryOverrideTestCase):
     def test_when_write_policy_queried_from_library_missing_default_policy_then_raises_exception(
         self,
     ):
-        context = self.createTestContext(access=Context.Access.kWrite)
+        context = self.createTestContext()
 
         with self.assertRaises(LookupError) as ex:
-            self._manager.managementPolicy([{"a trait"}], context)
+            self._manager.managementPolicy([{"a trait"}], PolicyAccess.kWrite, context)
 
         self.assertEqual(
             str(ex.exception),
@@ -268,7 +269,7 @@ class Test_managementPolicy_library_specified_behavior(LibraryOverrideTestCase):
     )
 
     def test_returns_expected_policies_for_all_trait_sets(self):
-        context = self.createTestContext(access=Context.Access.kRead)
+        context = self.createTestContext()
         expected = [
             TraitsData({"bal:test.SomePolicy"}),
             TraitsData(),
@@ -276,25 +277,29 @@ class Test_managementPolicy_library_specified_behavior(LibraryOverrideTestCase):
         ]
         expected[0].setTraitProperty("bal:test.SomePolicy", "exclusive", True)
 
-        actual = self._manager.managementPolicy(self.__read_trait_sets, context)
+        actual = self._manager.managementPolicy(
+            self.__read_trait_sets, PolicyAccess.kRead, context
+        )
 
         self.assertListEqual(actual, expected)
 
     def test_returns_expected_policy_for_write_for_all_trait_sets(self):
-        context = self.createTestContext(access=Context.Access.kWrite)
+        context = self.createTestContext()
         expected = [TraitsData(), TraitsData({"bal:test.SomePolicy"})]
 
-        actual = self._manager.managementPolicy(self.__write_trait_sets, context)
+        actual = self._manager.managementPolicy(
+            self.__write_trait_sets, PolicyAccess.kWrite, context
+        )
 
         self.assertListEqual(actual, expected)
 
     def test_returns_unsupported_policy_for_createRelated_for_all_trait_sets(self):
         trait_sets = self.__read_trait_sets + self.__write_trait_sets
 
-        context = self.createTestContext(access=Context.Access.kCreateRelated)
+        context = self.createTestContext()
         expected = [TraitsData()] * len(trait_sets)
 
-        actual = self._manager.managementPolicy(trait_sets, context)
+        actual = self._manager.managementPolicy(trait_sets, PolicyAccess.kCreateRelated, context)
 
         self.assertListEqual(actual, expected)
 
@@ -321,7 +326,7 @@ class Test_resolve(FixtureAugmentedTestCase):
             self._manager.createEntityReference(ref_str) for ref_str in self.__entities
         ]
         trait_set = {"string", "number", "test-data"}
-        context = self.createTestContext(access=Context.Access.kRead)
+        context = self.createTestContext()
 
         results = [None] * len(entity_references)
 
@@ -334,7 +339,9 @@ class Test_resolve(FixtureAugmentedTestCase):
                 f" {batchElementError.message}"
             )
 
-        self._manager.resolve(entity_references, trait_set, context, success_cb, error_cb)
+        self._manager.resolve(
+            entity_references, trait_set, ResolveAccess.kRead, context, success_cb, error_cb
+        )
 
         for ref, result in zip(entity_references, results):
             # Check all traits are present, and their properties.
@@ -357,23 +364,22 @@ class Test_resolve(FixtureAugmentedTestCase):
             )
         ]
 
-        for access in (Context.Access.kWrite, Context.Access.kCreateRelated):
-            with self.subTest(access=access):
-                context = self.createTestContext(access=Context.Access.kWrite)
-                actual = [None]
+        context = self.createTestContext()
+        actual = [None]
 
-                self._manager.resolve(
-                    entity_references,
-                    trait_set,
-                    context,
-                    lambda idx, _: self.fail(
-                        f"Unexpected success for '{entity_references[idx].toString()}'"
-                    ),
-                    # pylint: disable=cell-var-from-loop
-                    lambda idx, err: operator.setitem(actual, idx, err),
-                )
+        self._manager.resolve(
+            entity_references,
+            trait_set,
+            ResolveAccess.kWrite,
+            context,
+            lambda idx, _: self.fail(
+                f"Unexpected success for '{entity_references[idx].toString()}'"
+            ),
+            # pylint: disable=cell-var-from-loop
+            lambda idx, err: operator.setitem(actual, idx, err),
+        )
 
-                self.assertListEqual(actual, expected)
+        self.assertListEqual(actual, expected)
 
 
 class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
@@ -438,8 +444,10 @@ class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
         def error_cb(_, batchElementError):
             self.fail(f"Unexpected error:" f" {batchElementError.message}")
 
-        context = self.createTestContext(access=Context.Access.kRead)
-        self._manager.resolve([entity_ref], {trait_id}, context, success_cb, error_cb)
+        context = self.createTestContext()
+        self._manager.resolve(
+            [entity_ref], {trait_id}, ResolveAccess.kRead, context, success_cb, error_cb
+        )
 
         return data
 
@@ -545,7 +553,8 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
         data = self._manager.resolve(
             self._manager.createEntityReference(ref_str),
             {"expected-version", VersionTrait.kId},
-            self.createTestContext(Context.Access.kRead),
+            ResolveAccess.kRead,
+            self.createTestContext(),
         )
 
         self.assertEqual(data.getTraitProperty("expected-version", "tag"), expected_stable)
@@ -569,14 +578,13 @@ class Test_getWithRelationship_All(FixtureAugmentedTestCase):
             )
         ]
 
-        for access in (Context.Access.kWrite, Context.Access.kCreateRelated):
-            context.access = access
-
+        for access in (RelationsAccess.kWrite, RelationsAccess.kCreateRelated):
             with self.subTest("getWithRelationship", access=access):
                 actual = [None]
                 self._manager.getWithRelationship(
                     [entity_reference],
                     relationship,
+                    access,
                     context,
                     lambda _idx, _refs: self.fail("Unexpected success callback"),
                     lambda idx, batch_element_error: operator.setitem(
@@ -591,6 +599,7 @@ class Test_getWithRelationship_All(FixtureAugmentedTestCase):
                 self._manager.getWithRelationships(
                     entity_reference,
                     [relationship],
+                    access,
                     context,
                     lambda _idx, _refs: self.fail("Unexpected success callback"),
                     lambda idx, batch_element_error: operator.setitem(
@@ -606,6 +615,7 @@ class Test_getWithRelationship_All(FixtureAugmentedTestCase):
                     [entity_reference],
                     relationship,
                     10,
+                    access,
                     context,
                     lambda _idx, _refs: self.fail("Unexpected success callback"),
                     lambda idx, batch_element_error: operator.setitem(
@@ -621,6 +631,7 @@ class Test_getWithRelationship_All(FixtureAugmentedTestCase):
                     entity_reference,
                     [relationship],
                     10,
+                    access,
                     context,
                     lambda _idx, _refs: self.fail("Unexpected success callback"),
                     lambda idx, batch_element_error: operator.setitem(
@@ -638,13 +649,14 @@ class Test_preflight(FixtureAugmentedTestCase):
             for s in ["bal:///A ref to a 🐔", "bal:///anotherRef"]
         ]
         traits_datas = [TraitsData()] * len(entity_references)
-        context = self.createTestContext(access=Context.Access.kWrite)
+        context = self.createTestContext()
 
         result_references = [None] * len(entity_references)
 
         self._manager.preflight(
             entity_references,
             traits_datas,
+            PublishingAccess.kWrite,
             context,
             lambda idx, ref: operator.setitem(result_references, idx, ref),
             lambda _idx, _err: self.fail("Preflight should not error for this input"),
@@ -662,21 +674,19 @@ class Test_preflight(FixtureAugmentedTestCase):
             )
         ]
 
-        for access in (Context.Access.kRead, Context.Access.kCreateRelated):
-            with self.subTest(access=access):
-                actual = [None]
-                context = self.createTestContext(access=access)
+        actual = [None]
 
-                self._manager.preflight(
-                    entity_references,
-                    [TraitsData()],
-                    context,
-                    lambda _idx, _ref: self.fail("Preflight should not succeed for this input"),
-                    # pylint: disable=cell-var-from-loop
-                    lambda idx, err: operator.setitem(actual, idx, err),
-                )
+        self._manager.preflight(
+            entity_references,
+            [TraitsData()],
+            PublishingAccess.kCreateRelated,
+            self.createTestContext(),
+            lambda _idx, _ref: self.fail("Preflight should not succeed for this input"),
+            # pylint: disable=cell-var-from-loop
+            lambda idx, err: operator.setitem(actual, idx, err),
+        )
 
-                self.assertListEqual(actual, expected)
+        self.assertListEqual(actual, expected)
 
     def test_when_refs_versioned_then_v_query_param_removed(self):
         entity_references = [
@@ -684,13 +694,14 @@ class Test_preflight(FixtureAugmentedTestCase):
             for s in ["bal:///A ref to a 🐔?v=2", "bal:///anotherRef?v=6"]
         ]
         traits_datas = [TraitsData()] * len(entity_references)
-        context = self.createTestContext(access=Context.Access.kWrite)
+        context = self.createTestContext()
 
         result_references = [None] * len(entity_references)
 
         self._manager.preflight(
             entity_references,
             traits_datas,
+            PublishingAccess.kWrite,
             context,
             lambda idx, ref: operator.setitem(result_references, idx, ref),
             lambda _idx, _err: self.fail("Preflight should not error for this input"),
@@ -710,7 +721,6 @@ class Test_register(FixtureAugmentedTestCase):
         )
         published_entity_ref = self.__create_test_entity(new_entity_ref, data, context)
 
-        context.access = Context.Access.kRead
         self._manager.entityExists(
             [published_entity_ref],
             context,
@@ -741,10 +751,10 @@ class Test_register(FixtureAugmentedTestCase):
 
         updated_refs = [None]
 
-        context.access = Context.Access.kWrite
         self._manager.register(
             [existing_entity_ref],
             [data],
+            PublishingAccess.kWrite,
             context,
             lambda idx, ref: operator.setitem(updated_refs, idx, ref),
             lambda _, err: self.fail(f"Register should not error: {err.code} {err.message}"),
@@ -758,10 +768,10 @@ class Test_register(FixtureAugmentedTestCase):
 
         resolved_data = [None]
 
-        context.access = Context.Access.kRead
         self._manager.resolve(
             updated_refs,
             {"a_trait"},
+            ResolveAccess.kRead,
             context,
             lambda idx, data: operator.setitem(resolved_data, idx, data),
             lambda _, err: self.fail(f"Resolve should not error: {err.code} {err.message}"),
@@ -780,32 +790,26 @@ class Test_register(FixtureAugmentedTestCase):
             )
         ]
 
-        for access in (Context.Access.kRead, Context.Access.kCreateRelated):
-            with self.subTest(access=access):
-                actual = [None]
-                context = self.createTestContext(access=access)
+        actual = [None]
+        context = self.createTestContext()
 
-                self._manager.register(
-                    entity_references,
-                    [TraitsData()],
-                    context,
-                    lambda _idx, _ref: self.fail("Register should not succeed for this input"),
-                    # pylint: disable=cell-var-from-loop
-                    lambda idx, err: operator.setitem(actual, idx, err),
-                )
+        self._manager.register(
+            entity_references,
+            [TraitsData()],
+            PublishingAccess.kCreateRelated,
+            context,
+            lambda _idx, _ref: self.fail("Register should not succeed for this input"),
+            # pylint: disable=cell-var-from-loop
+            lambda idx, err: operator.setitem(actual, idx, err),
+        )
 
-                self.assertListEqual(actual, expected)
+        self.assertListEqual(actual, expected)
 
     def __create_test_entity(self, ref, data, context):
         """
         Creates a new entity in the library for testing.
         Asserts that the entity does not exist prior to creation.
         """
-        ## @TODO (tc) Resurrect "scoped context override"?
-        old_access = context.access
-
-        context.access = Context.Access.kRead
-
         self._manager.entityExists(
             [ref],
             context,
@@ -819,16 +823,15 @@ class Test_register(FixtureAugmentedTestCase):
 
         published_refs = [None]
 
-        context.access = Context.Access.kWrite
         self._manager.register(
             [ref],
             [data],
+            PublishingAccess.kWrite,
             context,
             lambda idx, published_ref: operator.setitem(published_refs, idx, published_ref),
             lambda _, err: self.fail(f"Failed to create new entity: {err.code} {err.message}"),
         )
 
-        context.access = old_access
         return published_refs[0]
 
 
@@ -883,7 +886,8 @@ class Test_getWithRelationship_versions(FixtureAugmentedTestCase):
         self._manager.getWithRelationship(
             [self._manager.createEntityReference("bal:///anAsset⭐︎")],
             relationship,
-            self.createTestContext(Context.Access.kRead),
+            RelationsAccess.kRead,
+            self.createTestContext(),
             lambda idx, refs: result_refs.extend(refs),
             lambda _, err: self.fail(f"Failed to query relationships: {err.code} {err.message}"),
         )

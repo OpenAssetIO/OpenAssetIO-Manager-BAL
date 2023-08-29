@@ -27,7 +27,8 @@ import operator
 import os
 from unittest import mock
 
-from openassetio import Context, TraitsData
+from openassetio import TraitsData
+from openassetio.access import PublishingAccess, RelationsAccess, ResolveAccess
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
 
@@ -61,7 +62,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self._manager.resolve,
             self.create_test_entity_references(),
             {"string"},
-            self.createTestContext(access=Context.Access.kRead),
+            ResolveAccess.kRead,
+            self.createTestContext(),
         )
 
     def test_when_preflight_called_then_results_delayed_by_specified_simulated_query_latency(self):
@@ -71,7 +73,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self._manager.preflight,
             entity_references,
             traits_datas,
-            self.createTestContext(access=Context.Access.kRead),
+            PublishingAccess.kWrite,
+            self.createTestContext(),
         )
 
     def test_when_entityExists_called_then_results_delayed_by_specified_simulated_query_latency(
@@ -80,7 +83,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         self.__check_simulated_latencies(
             self._manager.entityExists,
             self.create_test_entity_references(),
-            self.createTestContext(access=Context.Access.kRead),
+            self.createTestContext(),
         )
 
     def test_when_register_called_then_results_delayed_by_specified_simulated_query_latency(self):
@@ -91,7 +94,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self._manager.register,
             entity_refs,
             traits_datas,
-            self.createTestContext(access=Context.Access.kRead),
+            PublishingAccess.kWrite,
+            self.createTestContext(),
         )
 
     def test_when_getWithRelationship_called_then_results_delayed_by_specified_query_latency(
@@ -103,7 +107,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self._manager.getWithRelationship,
             entity_refs,
             TraitsData(),
-            self.createTestContext(access=Context.Access.kRead),
+            RelationsAccess.kRead,
+            self.createTestContext(),
         )
 
     def test_when_getWithRelationships_called_then_results_delayed_by_specified_query_latency(
@@ -116,7 +121,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self._manager.getWithRelationships,
             entity_ref,
             traits_datas,
-            self.createTestContext(access=Context.Access.kRead),
+            RelationsAccess.kRead,
+            self.createTestContext(),
         )
 
     def test_when_getWithRelationshipPaged_called_then_results_delayed_by_specified_query_latency(
@@ -129,7 +135,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             entity_refs,
             TraitsData(),
             1,
-            self.createTestContext(access=Context.Access.kRead),
+            RelationsAccess.kRead,
+            self.createTestContext(),
         )
 
     def test_when_getWithRelationshipsPaged_called_then_results_delayed_by_specified_query_latency(
@@ -143,7 +150,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             entity_ref,
             traits_datas,
             1,
-            self.createTestContext(access=Context.Access.kRead),
+            RelationsAccess.kRead,
+            self.createTestContext(),
         )
 
     def test_when_pager_hasNext_called_then_results_delayed(
@@ -219,7 +227,8 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             [entity_ref],
             TraitsData(),
             1,
-            self.createTestContext(access=Context.Access.kRead),
+            RelationsAccess.kRead,
+            self.createTestContext(),
             lambda idx, pager: operator.setitem(pagers, idx, pager),
             lambda idx, error: self.fail(f"Unexpected BatchElementError {error}"),
         )
