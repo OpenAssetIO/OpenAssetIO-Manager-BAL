@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+---------------
+
+### Bug fixes
+
+- Made `openassetio-mediacreation` a soft dependency to avoid
+  conflicting installation requirements.
+
 v1.0.0-alpha.10
 ---------------
 
