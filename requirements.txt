@@ -1,1 +1,2 @@
 openassetio==1.0.0a14
+openassetio-mediacreation>=1.0.0a7
