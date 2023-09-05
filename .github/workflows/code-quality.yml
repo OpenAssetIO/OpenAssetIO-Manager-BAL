@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Pylint
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Python formatting
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
