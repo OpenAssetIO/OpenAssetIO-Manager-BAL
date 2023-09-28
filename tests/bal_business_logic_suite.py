@@ -26,10 +26,13 @@ import os
 
 from unittest import mock
 
-import openassetio
-from openassetio import constants, TraitsData, BatchElementError
+from openassetio import constants, TraitsData
 from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
-from openassetio.exceptions import PluginError
+from openassetio.errors import (
+    BatchElementError,
+    BatchElementException,
+    ConfigurationException,
+)
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
 import openassetio_mediacreation
@@ -77,10 +80,10 @@ class Test_initialize_library_path(FixtureAugmentedTestCase):
     alt_lib_path = os.path.join(os.path.dirname(__file__), "resources", "library_empty.json")
 
     @mock.patch.dict(os.environ)
-    def test_when_setting_and_env_not_set_then_PluginError_raised(self):
+    def test_when_setting_and_env_not_set_then_ConfigurationException_raised(self):
         if LIBRARY_PATH_VARNAME in os.environ:
             del os.environ[LIBRARY_PATH_VARNAME]
-        with self.assertRaises(PluginError):
+        with self.assertRaises(ConfigurationException):
             self._manager.initialize({})
 
     @mock.patch.dict(os.environ)
@@ -103,9 +106,9 @@ class Test_initialize_library_path(FixtureAugmentedTestCase):
         self.assertEqual(self._manager.settings()["library_path"], self.alt_lib_path)
 
     @mock.patch.dict(os.environ)
-    def test_when_setting_and_env_blank_then_PluginError_raised(self):
+    def test_when_setting_and_env_blank_then_ConfigurationException_raised(self):
         os.environ[LIBRARY_PATH_VARNAME] = ""
-        with self.assertRaises(PluginError):
+        with self.assertRaises(ConfigurationException):
             self._manager.initialize({"library_path": ""})
 
     @mock.patch.dict(os.environ)
@@ -529,15 +532,15 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
         self.assertVersioning("anAsset⭐︎", "latest", "2")
 
     def test_when_v_is_greater_than_latest_then_resolution_error_returned(self):
-        with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
+        with self.assertRaises(BatchElementException):
             self.assertVersioning("anAsset⭐︎", "3", "")
 
     def test_when_v_is_less_than_one_then_resolution_error_returned(self):
-        with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
+        with self.assertRaises(BatchElementException):
             self.assertVersioning("anAsset⭐︎", "0", "")
 
     def test_when_v_is_not_an_integer_then_error_is_returned(self):
-        with self.assertRaises(openassetio.MalformedEntityReferenceBatchElementException):
+        with self.assertRaises(BatchElementException):
             self.assertVersioning("anAsset⭐︎", "cabbage", "")
 
     def assertVersioning(self, entity_name, specified_tag, expected_stable):

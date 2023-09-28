@@ -28,9 +28,9 @@ from functools import wraps
 from typing import Iterable, List, Any
 from urllib.parse import urlparse, parse_qs
 
-from openassetio import constants, BatchElementError, EntityReference, TraitsData
+from openassetio import constants, EntityReference, TraitsData
 from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
-from openassetio.exceptions import MalformedEntityReference, PluginError
+from openassetio.errors import BatchElementError, ConfigurationException
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
 
 from openassetio_mediacreation.traits.lifecycle import VersionTrait, StableTrait
@@ -72,6 +72,16 @@ def simulated_delay(func):
         return func(self, *args, **kwargs)
 
     return wrapper_simulated_delay
+
+
+class MalformedEntityReference(RuntimeError):
+    """
+    An exception raised for a reference to an entity reference that is
+    formatted incorrectly or otherwise malformed.
+    """
+
+    def __init__(self, malformed_reason: str, entity_ref: str):
+        super().__init__(f"{malformed_reason} ({entity_ref})")
 
 
 class BasicAssetLibraryInterface(ManagerInterface):
@@ -128,7 +138,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
             library_path = os.environ.get(self.__lib_path_envvar_name)
 
         if not library_path:
-            raise PluginError(f"'library_path'/{self.__lib_path_envvar_name} not set or is empty")
+            raise ConfigurationException(
+                f"'library_path'/{self.__lib_path_envvar_name} not set or is empty"
+            )
 
         self.__settings.update(managerSettings)
         self.__settings["library_path"] = library_path
