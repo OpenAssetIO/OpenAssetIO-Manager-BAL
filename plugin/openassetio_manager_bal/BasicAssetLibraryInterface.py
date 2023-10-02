@@ -179,6 +179,26 @@ class BasicAssetLibraryInterface(ManagerInterface):
             # kCreateRelated unsupported.
             return [TraitsData() for _ in traitSets]
 
+        ## NOTE:
+        #
+        # BAL _should_ really explicitly handle the versioning related
+        # traits here. However, whilst BAL is in limbo between being a
+        # mock and a 'functional' manager, then we leave this up to the
+        # json configuration, so a host can simulate a manager both
+        # with, and without versioning support. If BAL wasn't soon to be
+        # re-written, adding a setting may make more sense.
+        #
+        # When queried for read, a well-behaved implementation here
+        # would:
+        #
+        #  - Imbue the ManagedTrait for the relation trait
+        #    sets EntityVersionsRelationshipSpecification and
+        #    StableEntityVersionsRelationshipSpecification, to note that
+        #    they can be used with getWithRelationship.
+        #
+        #  - Imbue the VersionTrait if requested in an entity trait
+        #    set to indicate it can be resolved.
+
         return [
             self.__dict_to_traits_data(bal.management_policy(trait_set, key, self.__library))
             for trait_set in traitSets
