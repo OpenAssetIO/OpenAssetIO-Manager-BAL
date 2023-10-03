@@ -367,11 +367,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, entity_ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(entity_ref.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationshipTraitsData),
-                    resultTraitSet,
-                    self.__library,
+                relations = self.__get_relations(
+                    entity_info, relationshipTraitsData, resultTraitSet
                 )
                 successCallback(
                     idx,
@@ -408,12 +405,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
                 entity_info = self.__parse_entity_ref(entityReference.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationship),
-                    resultTraitSet,
-                    self.__library,
-                )
+                relations = self.__get_relations(entity_info, relationship, resultTraitSet)
                 successCallback(
                     idx,
                     BALEntityReferencePagerInterface(
