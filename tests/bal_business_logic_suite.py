@@ -26,7 +26,7 @@ import os
 
 from unittest import mock
 
-from openassetio import constants, TraitsData
+from openassetio import constants
 from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
 from openassetio.errors import (
     BatchElementError,
@@ -34,6 +34,7 @@ from openassetio.errors import (
     ConfigurationException,
 )
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
+from openassetio.trait import TraitsData
 
 import openassetio_mediacreation
 from openassetio_mediacreation.traits.lifecycle import VersionTrait

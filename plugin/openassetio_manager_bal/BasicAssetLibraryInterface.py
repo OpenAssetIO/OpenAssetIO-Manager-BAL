@@ -28,10 +28,11 @@ from functools import wraps
 from typing import Iterable, List, Any
 from urllib.parse import urlparse, parse_qs
 
-from openassetio import constants, EntityReference, TraitsData
+from openassetio import constants, EntityReference
 from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
 from openassetio.errors import BatchElementError, ConfigurationException
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
+from openassetio.trait import TraitsData
 
 from openassetio_mediacreation.traits.lifecycle import VersionTrait, StableTrait
 from openassetio_mediacreation.specifications.lifecycle import (

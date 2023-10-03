@@ -27,8 +27,8 @@ import operator
 import os
 from unittest import mock
 
-from openassetio import TraitsData
 from openassetio.access import PublishingAccess, RelationsAccess, ResolveAccess
+from openassetio.trait import TraitsData
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
 

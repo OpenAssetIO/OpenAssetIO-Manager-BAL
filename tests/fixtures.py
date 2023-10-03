@@ -20,8 +20,8 @@ Manager test harness fixtures for the apiComplianceSuite
 import json
 import os
 
-from openassetio import TraitsData
 from openassetio import constants
+from openassetio.trait import TraitsData
 
 
 #
