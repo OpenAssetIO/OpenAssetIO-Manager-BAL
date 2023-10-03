@@ -587,6 +587,7 @@ class Test_getWithRelationship_All(FixtureAugmentedTestCase):
                 self._manager.getWithRelationship(
                     [entity_reference],
                     relationship,
+                    10,
                     access,
                     context,
                     lambda _idx, _refs: self.fail("Unexpected success callback"),
@@ -600,37 +601,6 @@ class Test_getWithRelationship_All(FixtureAugmentedTestCase):
             with self.subTest("getWithRelationships", access=access):
                 actual = [None]
                 self._manager.getWithRelationships(
-                    entity_reference,
-                    [relationship],
-                    access,
-                    context,
-                    lambda _idx, _refs: self.fail("Unexpected success callback"),
-                    lambda idx, batch_element_error: operator.setitem(
-                        actual, idx, batch_element_error
-                    ),
-                )
-
-                self.assertListEqual(actual, expected)
-
-            with self.subTest("getWithRelationshipPaged", access=access):
-                actual = [None]
-                self._manager.getWithRelationshipPaged(
-                    [entity_reference],
-                    relationship,
-                    10,
-                    access,
-                    context,
-                    lambda _idx, _refs: self.fail("Unexpected success callback"),
-                    lambda idx, batch_element_error: operator.setitem(
-                        actual, idx, batch_element_error
-                    ),
-                )
-
-                self.assertListEqual(actual, expected)
-
-            with self.subTest("getWithRelationshipsPaged", access=access):
-                actual = [None]
-                self._manager.getWithRelationshipsPaged(
                     entity_reference,
                     [relationship],
                     10,
@@ -889,9 +859,10 @@ class Test_getWithRelationship_versions(FixtureAugmentedTestCase):
         self._manager.getWithRelationship(
             [self._manager.createEntityReference("bal:///anAsset⭐︎")],
             relationship,
+            1000,
             RelationsAccess.kRead,
             self.createTestContext(),
-            lambda idx, refs: result_refs.extend(refs),
+            lambda idx, pager: result_refs.extend(pager.get()),
             lambda _, err: self.fail(f"Failed to query relationships: {err.code} {err.message}"),
         )
 

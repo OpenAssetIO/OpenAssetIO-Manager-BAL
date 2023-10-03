@@ -291,64 +291,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
         entityReferences,
         relationshipTraitsData,
         resultTraitSet,
-        access,
-        context,
-        hostSession,
-        successCallback,
-        errorCallback,
-    ):
-        if not self.__validate_access(
-            "relationship query",
-            (RelationsAccess.kRead,),
-            access,
-            entityReferences,
-            errorCallback,
-        ):
-            return
-        for idx, entity_ref in enumerate(entityReferences):
-            try:
-                entity_info = self.__parse_entity_ref(entity_ref.toString())
-                relations = self.__get_relations(
-                    entity_info, relationshipTraitsData, resultTraitSet
-                )
-                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
-            except Exception as exc:  # pylint: disable=broad-except
-                self.__handle_exception(exc, idx, errorCallback)
-
-    @simulated_delay
-    def getWithRelationships(
-        self,
-        entityReference,
-        relationshipTraitsDatas,
-        resultTraitSet,
-        access,
-        context,
-        hostSession,
-        successCallback,
-        errorCallback,
-    ):
-        if not self.__validate_access(
-            "relationship query",
-            (RelationsAccess.kRead,),
-            access,
-            relationshipTraitsDatas,
-            errorCallback,
-        ):
-            return
-        for idx, relationship in enumerate(relationshipTraitsDatas):
-            try:
-                entity_info = self.__parse_entity_ref(entityReference.toString())
-                relations = self.__get_relations(entity_info, relationship, resultTraitSet)
-                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
-            except Exception as exc:  # pylint: disable=broad-except
-                self.__handle_exception(exc, idx, errorCallback)
-
-    @simulated_delay
-    def getWithRelationshipPaged(
-        self,
-        entityReferences,
-        relationshipTraitsData,
-        resultTraitSet,
         pageSize,
         access,
         context,
@@ -382,7 +324,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 self.__handle_exception(exc, idx, errorCallback)
 
     @simulated_delay
-    def getWithRelationshipsPaged(
+    def getWithRelationships(
         self,
         entityReference,
         relationshipTraitsDatas,
