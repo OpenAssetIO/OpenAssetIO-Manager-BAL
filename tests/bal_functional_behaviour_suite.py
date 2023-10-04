@@ -27,8 +27,8 @@ import operator
 import os
 from unittest import mock
 
-from openassetio import TraitsData
 from openassetio.access import PublishingAccess, RelationsAccess, ResolveAccess
+from openassetio.trait import TraitsData
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
 
@@ -107,6 +107,7 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
             self._manager.getWithRelationship,
             entity_refs,
             TraitsData(),
+            1,
             RelationsAccess.kRead,
             self.createTestContext(),
         )
@@ -119,34 +120,6 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
 
         self.__check_simulated_latencies(
             self._manager.getWithRelationships,
-            entity_ref,
-            traits_datas,
-            RelationsAccess.kRead,
-            self.createTestContext(),
-        )
-
-    def test_when_getWithRelationshipPaged_called_then_results_delayed_by_specified_query_latency(
-        self,
-    ):
-        entity_refs = self.create_test_entity_references()
-
-        self.__check_simulated_latencies(
-            self._manager.getWithRelationshipPaged,
-            entity_refs,
-            TraitsData(),
-            1,
-            RelationsAccess.kRead,
-            self.createTestContext(),
-        )
-
-    def test_when_getWithRelationshipsPaged_called_then_results_delayed_by_specified_query_latency(
-        self,
-    ):
-        entity_ref = self.create_test_entity_references()[0]
-        traits_datas = [TraitsData()] * 3
-
-        self.__check_simulated_latencies(
-            self._manager.getWithRelationshipsPaged,
             entity_ref,
             traits_datas,
             1,
@@ -216,14 +189,14 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         """
         Get a pager object wrapping a BALEntityReferencePagerInterface.
 
-        Arbitrarily choose getWithRelationshipPaged as a way to get a
+        Arbitrarily choose getWithRelationship as a way to get a
         pager - we know it's the same type as returned by
-        getWithRelationshipsPaged.
+        getWithRelationships.
         """
         entity_ref = self.create_test_entity_references()[0]
         pagers = [None]
 
-        self._manager.getWithRelationshipPaged(
+        self._manager.getWithRelationship(
             [entity_ref],
             TraitsData(),
             1,

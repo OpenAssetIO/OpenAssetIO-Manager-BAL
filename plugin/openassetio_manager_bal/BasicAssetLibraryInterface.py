@@ -28,10 +28,11 @@ from functools import wraps
 from typing import Iterable, List, Any
 from urllib.parse import urlparse, parse_qs
 
-from openassetio import constants, EntityReference, TraitsData
+from openassetio import constants, EntityReference
 from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
 from openassetio.errors import BatchElementError, ConfigurationException
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
+from openassetio.trait import TraitsData
 
 from openassetio_mediacreation.traits.lifecycle import VersionTrait, StableTrait
 from openassetio_mediacreation.specifications.lifecycle import (
@@ -291,9 +292,10 @@ class BasicAssetLibraryInterface(ManagerInterface):
         entityReferences,
         relationshipTraitsData,
         resultTraitSet,
+        pageSize,
         access,
         context,
-        hostSession,
+        _hostSession,
         successCallback,
         errorCallback,
     ):
@@ -311,7 +313,14 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 relations = self.__get_relations(
                     entity_info, relationshipTraitsData, resultTraitSet
                 )
-                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
+                successCallback(
+                    idx,
+                    BALEntityReferencePagerInterface(
+                        self.simulated_latency,
+                        pageSize,
+                        [self.__build_entity_ref(info) for info in relations],
+                    ),
+                )
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
 
@@ -321,9 +330,10 @@ class BasicAssetLibraryInterface(ManagerInterface):
         entityReference,
         relationshipTraitsDatas,
         resultTraitSet,
+        pageSize,
         access,
         context,
-        hostSession,
+        _hostSession,
         successCallback,
         errorCallback,
     ):
@@ -339,81 +349,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
             try:
                 entity_info = self.__parse_entity_ref(entityReference.toString())
                 relations = self.__get_relations(entity_info, relationship, resultTraitSet)
-                successCallback(idx, [self.__build_entity_ref(info) for info in relations])
-            except Exception as exc:  # pylint: disable=broad-except
-                self.__handle_exception(exc, idx, errorCallback)
-
-    @simulated_delay
-    def getWithRelationshipPaged(
-        self,
-        entityReferences,
-        relationshipTraitsData,
-        resultTraitSet,
-        pageSize,
-        access,
-        context,
-        _hostSession,
-        successCallback,
-        errorCallback,
-    ):
-        if not self.__validate_access(
-            "relationship query",
-            (RelationsAccess.kRead,),
-            access,
-            entityReferences,
-            errorCallback,
-        ):
-            return
-        for idx, entity_ref in enumerate(entityReferences):
-            try:
-                entity_info = self.__parse_entity_ref(entity_ref.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationshipTraitsData),
-                    resultTraitSet,
-                    self.__library,
-                )
-                successCallback(
-                    idx,
-                    BALEntityReferencePagerInterface(
-                        self.simulated_latency,
-                        pageSize,
-                        [self.__build_entity_ref(info) for info in relations],
-                    ),
-                )
-            except Exception as exc:  # pylint: disable=broad-except
-                self.__handle_exception(exc, idx, errorCallback)
-
-    @simulated_delay
-    def getWithRelationshipsPaged(
-        self,
-        entityReference,
-        relationshipTraitsDatas,
-        resultTraitSet,
-        pageSize,
-        access,
-        context,
-        _hostSession,
-        successCallback,
-        errorCallback,
-    ):
-        if not self.__validate_access(
-            "relationship query",
-            (RelationsAccess.kRead,),
-            access,
-            relationshipTraitsDatas,
-            errorCallback,
-        ):
-            return
-        for idx, relationship in enumerate(relationshipTraitsDatas):
-            try:
-                entity_info = self.__parse_entity_ref(entityReference.toString())
-                relations = bal.related_references(
-                    entity_info,
-                    self.__traits_data_to_dict(relationship),
-                    resultTraitSet,
-                    self.__library,
-                )
                 successCallback(
                     idx,
                     BALEntityReferencePagerInterface(

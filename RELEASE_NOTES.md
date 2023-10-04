@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+v1.0.0-alpha.xx
+---------------
+
+### Breaking changes
+
+- Minimum OpenAssetIO version increased to v1.0.0-beta.1 due to
+  breaking API changes.
+  [#1125](https://github.com/OpenAssetIO/OpenAssetIO/issues/1125)
+  [#1127](https://github.com/OpenAssetIO/OpenAssetIO/issues/1127)
+
 v1.0.0-alpha.11
 ---------------
 
