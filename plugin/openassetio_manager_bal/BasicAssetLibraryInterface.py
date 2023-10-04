@@ -111,6 +111,19 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def settings(self, hostSession):
         return self.__settings.copy()
 
+    def hasCapability(self, capability):
+        if capability in (
+            ManagerInterface.Capability.kEntityReferenceIdentification,
+            ManagerInterface.Capability.kManagementPolicyQueries,
+            ManagerInterface.Capability.kResolution,
+            ManagerInterface.Capability.kPublishing,
+            ManagerInterface.Capability.kRelationshipQueries,
+            ManagerInterface.Capability.kExistenceQueries,
+        ):
+            return True
+
+        return False
+
     @property
     def simulated_latency(self):
         """
