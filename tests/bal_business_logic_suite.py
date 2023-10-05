@@ -27,6 +27,8 @@ import os
 from unittest import mock
 
 from openassetio import constants
+from openassetio.hostApi import Manager
+from openassetio.managerApi import ManagerInterface
 from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
 from openassetio.errors import (
     BatchElementError,
@@ -43,6 +45,10 @@ from openassetio_mediacreation.specifications.lifecycle import (
     StableEntityVersionsRelationshipSpecification,
 )
 
+# pylint can't load this module simply, we just want to import it to
+# test the asymmetric manager/managerInterface capabilities enum.
+# pylint: disable=E0401
+from openassetio_manager_bal.BasicAssetLibraryInterface import BasicAssetLibraryInterface
 
 __all__ = []
 
@@ -306,6 +312,31 @@ class Test_managementPolicy_library_specified_behavior(LibraryOverrideTestCase):
         actual = self._manager.managementPolicy(trait_sets, PolicyAccess.kCreateRelated, context)
 
         self.assertListEqual(actual, expected)
+
+
+class Test_hasCapability(FixtureAugmentedTestCase):
+    """
+    Tests that BAL reports expected capabilities
+    """
+
+    def test_when_hasCapability_called_then_expected_capabilities_reported(self):
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kStatefulContexts))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kCustomTerminology))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kDefaultEntityReferences))
+
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kResolution))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kPublishing))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kRelationshipQueries))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kExistenceQueries))
+
+    def test_when_hasCapability_called_on_managerInterface_then_has_mandatory_capabilities(self):
+        interface = BasicAssetLibraryInterface()
+        self.assertTrue(
+            interface.hasCapability(ManagerInterface.Capability.kEntityReferenceIdentification)
+        )
+        self.assertTrue(
+            interface.hasCapability(ManagerInterface.Capability.kManagementPolicyQueries)
+        )
 
 
 class Test_resolve(FixtureAugmentedTestCase):
