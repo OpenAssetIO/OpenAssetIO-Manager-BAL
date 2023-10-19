@@ -6,7 +6,7 @@ v1.0.0-alpha.xx
 
 ### Breaking changes
 
-- Minimum OpenAssetIO version increased to v1.0.0-beta.1 due to
+- Minimum OpenAssetIO version increased to v1.0.0-beta.1.0 due to
   breaking API changes.
   [#1119](https://github.com/OpenAssetIO/OpenAssetIO/issues/1119)
   [#1125](https://github.com/OpenAssetIO/OpenAssetIO/issues/1125)
