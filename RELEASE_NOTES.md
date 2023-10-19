@@ -12,6 +12,9 @@ v1.0.0-alpha.xx
   [#1125](https://github.com/OpenAssetIO/OpenAssetIO/issues/1125)
   [#1127](https://github.com/OpenAssetIO/OpenAssetIO/issues/1127)
 
+- Added `openassetio` as a package dependency to aid debugging
+  versions conflicts.
+
 v1.0.0-alpha.11
 ---------------
 
