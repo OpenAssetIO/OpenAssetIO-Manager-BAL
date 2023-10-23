@@ -13,21 +13,9 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Download wheels from commit OpenAssetIO main
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          workflow: build-wheels.yml
-          workflow_conclusion: success
-          name: openassetio-wheels
-          repo: OpenAssetIO/OpenAssetIO
-          path: deps
-
       - name: Install dependencies
         run: |
-          # Use wheels from feature branch for intermediate testing
-          python -m pip install ./deps/openassetio-*cp39*-manylinux_*_x86_64.whl
-          # python -m pip install -r requirements.txt
-          python -m pip install openassetio-mediacreation==1.0.0a7
+          python -m pip install -r requirements.txt
           python -m pip install -r tests/requirements.txt
           python -m pip install .
 
