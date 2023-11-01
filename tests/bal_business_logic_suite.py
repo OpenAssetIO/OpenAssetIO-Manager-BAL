@@ -43,6 +43,7 @@ from openassetio_mediacreation.traits.lifecycle import VersionTrait
 from openassetio_mediacreation.specifications.lifecycle import (
     EntityVersionsRelationshipSpecification,
     StableEntityVersionsRelationshipSpecification,
+    StableReferenceRelationshipSpecification,
 )
 
 # pylint can't load this module simply, we just want to import it to
@@ -79,6 +80,33 @@ class LibraryOverrideTestCase(FixtureAugmentedTestCase):
 
     def cleanUp(self):
         self._manager.initialize(self.__old_settings)
+
+
+class GetWithRelationshipTestCase(FixtureAugmentedTestCase):
+    """
+    A helper class to share common utiities that relate to tests of the
+    relatiionship query methods.
+    """
+
+    def assertExpectedRefs(self, ref, relationship, expected_refs):
+        """
+        Fetches all relations and asserts that they match expectations.
+        """
+        result_refs = []
+
+        self._manager.getWithRelationship(
+            [ref],
+            relationship,
+            1000,
+            RelationsAccess.kRead,
+            self.createTestContext(),
+            lambda idx, pager: result_refs.extend(pager.get()),
+            lambda _, err: self.fail(f"Failed to query relationships: {err.code} {err.message}"),
+        )
+
+        self.assertEqual(
+            [r.toString() for r in result_refs], [r.toString() for r in expected_refs]
+        )
 
 
 class Test_initialize_library_path(FixtureAugmentedTestCase):
@@ -840,7 +868,7 @@ class Test_register(FixtureAugmentedTestCase):
         return published_refs[0]
 
 
-class Test_getWithRelationship_versions(FixtureAugmentedTestCase):
+class Test_getWithRelationship_versions(GetWithRelationshipTestCase):
     def test_when_querying_versions_then_versions_and_latest_returned(self):
         expected_refs = [
             self._manager.createEntityReference(r)
@@ -850,7 +878,7 @@ class Test_getWithRelationship_versions(FixtureAugmentedTestCase):
                 "bal:///anAsset⭐︎?v=1",
             )
         ]
-        self.assertExpectedRefs(EntityVersionsRelationshipSpecification, expected_refs)
+        self.assertExpectedVersionRefs(EntityVersionsRelationshipSpecification, expected_refs)
 
     def test_when_querying_stable_versions_then_versions_returned(self):
         expected_refs = [
@@ -860,46 +888,66 @@ class Test_getWithRelationship_versions(FixtureAugmentedTestCase):
                 "bal:///anAsset⭐︎?v=1",
             )
         ]
-        self.assertExpectedRefs(StableEntityVersionsRelationshipSpecification, expected_refs)
+        self.assertExpectedVersionRefs(
+            StableEntityVersionsRelationshipSpecification, expected_refs
+        )
 
     def test_when_querying_specified_version_then_version_returned(self):
         expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎?v=1")]
-        self.assertExpectedRefs(EntityVersionsRelationshipSpecification, expected_refs, "1")
+        self.assertExpectedVersionRefs(EntityVersionsRelationshipSpecification, expected_refs, "1")
 
     def test_when_querying_specified_stable_version_then_version_returned(self):
         expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎?v=1")]
-        self.assertExpectedRefs(StableEntityVersionsRelationshipSpecification, expected_refs, "1")
+        self.assertExpectedVersionRefs(
+            StableEntityVersionsRelationshipSpecification, expected_refs, "1"
+        )
 
     def test_when_querying_latest_version_then_unversioned_ref_returned(self):
         expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎")]
-        self.assertExpectedRefs(EntityVersionsRelationshipSpecification, expected_refs, "latest")
+        self.assertExpectedVersionRefs(
+            EntityVersionsRelationshipSpecification, expected_refs, "latest"
+        )
 
     def test_when_querying_latest_stable_version_then_version_returned(self):
         expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎?v=2")]
-        self.assertExpectedRefs(
+        self.assertExpectedVersionRefs(
             StableEntityVersionsRelationshipSpecification, expected_refs, "latest"
         )
 
-    def assertExpectedRefs(self, specification, expected_refs, specify_version=None):
-        result_refs = []
-
+    def assertExpectedVersionRefs(self, specification, expected_refs, specify_version=None):
         relationship = specification.create().traitsData()
-
         if specify_version:
             VersionTrait(relationship).setSpecifiedTag(specify_version)
+        ref = self._manager.createEntityReference("bal:///anAsset⭐︎")
+        self.assertExpectedRefs(ref, relationship, expected_refs)
 
-        self._manager.getWithRelationship(
-            [self._manager.createEntityReference("bal:///anAsset⭐︎")],
-            relationship,
-            1000,
-            RelationsAccess.kRead,
-            self.createTestContext(),
-            lambda idx, pager: result_refs.extend(pager.get()),
-            lambda _, err: self.fail(f"Failed to query relationships: {err.code} {err.message}"),
+
+class Test_getWithRelationship_stable_ref(GetWithRelationshipTestCase):
+    def test_when_querying_unversioned_reference_then_v2_ref_returned(self):
+        input_ref = self._manager.createEntityReference("bal:///anAsset⭐︎")
+        expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎?v=2")]
+        self.assertExpectedRefs(
+            input_ref,
+            StableReferenceRelationshipSpecification.create().traitsData(),
+            expected_refs,
         )
 
-        self.assertEqual(
-            [r.toString() for r in result_refs], [r.toString() for r in expected_refs]
+    def test_when_querying_latest_reference_then_v2_ref_returned(self):
+        input_ref = self._manager.createEntityReference("bal:///anAsset⭐︎?v=latest")
+        expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎?v=2")]
+        self.assertExpectedRefs(
+            input_ref,
+            StableReferenceRelationshipSpecification.create().traitsData(),
+            expected_refs,
+        )
+
+    def test_when_querying_v1_reference_then_v1_ref_returned(self):
+        input_ref = self._manager.createEntityReference("bal:///anAsset⭐︎?v=1")
+        expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎?v=1")]
+        self.assertExpectedRefs(
+            input_ref,
+            StableReferenceRelationshipSpecification.create().traitsData(),
+            expected_refs,
         )
 
 

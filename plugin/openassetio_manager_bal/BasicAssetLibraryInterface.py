@@ -1,5 +1,5 @@
 #
-#   Copyright 2013-2021 [The Foundry Visionmongers Ltd]
+#   Copyright 2013-2023 [The Foundry Visionmongers Ltd]
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ from openassetio_mediacreation.traits.lifecycle import VersionTrait, StableTrait
 from openassetio_mediacreation.specifications.lifecycle import (
     EntityVersionsRelationshipSpecification,
     StableEntityVersionsRelationshipSpecification,
+    StableReferenceRelationshipSpecification,
 )
 
 from . import bal
@@ -394,27 +395,70 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 self.__handle_exception(exc, idx, errorCallback)
 
     def __get_relations(self, entity_info, relationship_traits_data, result_trait_set):
+        """
+        Retrieves relations based on the supplied traits data, by
+        dispatching to individual handlers for any implicit relationship
+        specifications. Falling back on library defined relations in all
+        other cases.
+        """
         relationship_trait_set = relationship_traits_data.traitSet()
 
         # We don't use issuperset as otherwise we'd end up responding to
         # any more specialized relationship definitions that may be
         # added in the future, with incorrect results.
+
         if relationship_trait_set in (
             EntityVersionsRelationshipSpecification.kTraitSet,
             StableEntityVersionsRelationshipSpecification.kTraitSet,
         ):
-            include_latest = StableTrait.kId not in relationship_trait_set
-            versions = bal.versions(entity_info, include_latest, self.__library)
-            # Filter to a specific version if requested
-            specified_version = VersionTrait(relationship_traits_data).getSpecifiedTag()
-            if specified_version:
-                if specified_version == VERSION_TAG_LATEST:
-                    versions = [versions[0]]
-                else:
-                    versions = [i for i in versions if i.version == int(specified_version)]
+            # Fetch other versions of the same entity
+            return self.__get_relations_entity_versions(entity_info, relationship_traits_data)
 
-            return versions
+        if relationship_trait_set == StableReferenceRelationshipSpecification.kTraitSet:
+            # Remove dynamic behaviour from the reference
+            return self.__get_relation_stable(entity_info)
 
+        return self.__get_relations_from_library(
+            entity_info, relationship_traits_data, result_trait_set
+        )
+
+    def __get_relations_entity_versions(self, entity_info, relationship_traits_data):
+        """
+        Retrieves entity infos for versions of the specified entity.
+        """
+        include_latest = StableTrait.kId not in relationship_traits_data.traitSet()
+        versions = bal.versions(entity_info, include_latest, self.__library)
+        # Filter to a specific version if requested
+        specified_version = VersionTrait(relationship_traits_data).getSpecifiedTag()
+        if specified_version:
+            if specified_version == VERSION_TAG_LATEST:
+                versions = [versions[0]]
+            else:
+                versions = [i for i in versions if i.version == int(specified_version)]
+
+        return versions
+
+    def __get_relation_stable(self, entity_info):
+        """
+        Provides a single stable entity_info devoid of any dynamic
+        behaviour.
+        """
+        # If we have no version, fetch the latest EntityInfo
+        # with a stable version defined, otherwise, the input
+        # EntityInfo is already stable (for now).
+        if entity_info.version is None:
+            versions = bal.versions(entity_info, include_latest=False, library=self.__library)
+            entity_info = versions[0]
+        return [
+            entity_info,
+        ]
+
+    def __get_relations_from_library(
+        self, entity_info, relationship_traits_data, result_trait_set
+    ):
+        """
+        Retrieves arbitrary relations as defined in the BAL library.
+        """
         return bal.related_references(
             entity_info,
             self.__traits_data_to_dict(relationship_traits_data),

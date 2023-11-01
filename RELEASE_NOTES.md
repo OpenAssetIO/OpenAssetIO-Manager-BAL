@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+v1.0.0-alpha.xx
+---------------
+
+### New features
+
+- Added support for querying a stable equivalent reference using the
+  OpenAssetIO-MediaCreation `StableReferenceRelationshipSpecification`
+  with `getWithRelationship`.
+  [#83](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/83)
+
 v1.0.0-alpha.12
 ---------------
 
