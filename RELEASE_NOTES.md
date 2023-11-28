@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+v1.0.0-alpha.xx
+---------------
+
+### Breaking changes
+
+- Reverted `openassetio-mediacreation` to an explicit package
+  dependency, now that
+  https://github.com/OpenAssetIO/OpenAssetIO/issues/1088 is complete,
+  and conflicting installation requirements will be handled correctly.
+  [#72](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/72)
+
 v1.0.0-alpha.13
 ---------------
 
