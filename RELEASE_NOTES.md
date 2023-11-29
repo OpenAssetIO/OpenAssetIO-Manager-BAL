@@ -12,6 +12,15 @@ v1.0.0-alpha.xx
   and conflicting installation requirements will be handled correctly.
   [#72](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/72)
 
+- Minimum OpenAssetIO version increased to v1.0.0-beta.2.0 due to
+  breaking API changes.
+  [#89](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/89)
+
+### New features
+
+- Added support for the `entityTraits` core API method.
+  [#89](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/89)
+
 v1.0.0-alpha.13
 ---------------
 

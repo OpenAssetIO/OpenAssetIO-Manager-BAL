@@ -19,7 +19,7 @@ BasicAssetLibrary manager behaves with the correct business logic.
 """
 
 # pylint: disable=invalid-name, missing-function-docstring, missing-class-docstring,
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,too-many-lines
 
 import operator
 import os
@@ -29,7 +29,13 @@ from unittest import mock
 from openassetio import constants
 from openassetio.hostApi import Manager
 from openassetio.managerApi import ManagerInterface
-from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
+from openassetio.access import (
+    PolicyAccess,
+    PublishingAccess,
+    RelationsAccess,
+    ResolveAccess,
+    EntityTraitsAccess,
+)
 from openassetio.errors import (
     BatchElementError,
     BatchElementException,
@@ -365,6 +371,81 @@ class Test_hasCapability(FixtureAugmentedTestCase):
         self.assertTrue(
             interface.hasCapability(ManagerInterface.Capability.kManagementPolicyQueries)
         )
+
+
+class Test_entityTraits(FixtureAugmentedTestCase):
+    def test_when_missing_entity_queried_for_write_then_empty_trait_set_returned(self):
+        # Missing entities are writable with unrestricted trait set.
+
+        results = [None]
+
+        self._manager.entityTraits(
+            [self._manager.createEntityReference("bal:///some/new/ref")],
+            EntityTraitsAccess.kWrite,
+            self.createTestContext(),
+            lambda idx, value: operator.setitem(results, idx, value),
+            lambda idx, error: self.fail("entityTraits should not fail"),
+        )
+        [result] = results
+
+        self.assertSetEqual(result, set())
+
+    def test_when_existing_entity_queried_for_read_then_VersionTrait_imbued(self):
+        # Missing entities are writable with unrestricted trait set.
+
+        results = [None]
+
+        self._manager.entityTraits(
+            [self._manager.createEntityReference("bal:///entity/source")],
+            EntityTraitsAccess.kRead,
+            self.createTestContext(),
+            lambda idx, value: operator.setitem(results, idx, value),
+            lambda idx, error: self.fail("entityTraits should not fail"),
+        )
+        [result] = results
+
+        self.assertIn(VersionTrait.kId, result)
+
+    def test_when_existing_entity_queried_for_write_then_VersionTrait_not_imbued(self):
+        # Missing entities are writable with unrestricted trait set.
+
+        results = [None]
+
+        self._manager.entityTraits(
+            [self._manager.createEntityReference("bal:///entity/source")],
+            EntityTraitsAccess.kWrite,
+            self.createTestContext(),
+            lambda idx, value: operator.setitem(results, idx, value),
+            lambda idx, error: self.fail("entityTraits should not fail"),
+        )
+        [result] = results
+
+        self.assertNotIn(VersionTrait.kId, result)
+
+    def test_traits_for_read_are_same_as_for_write_but_with_VersionTrait(self):
+        # Missing entities are writable with unrestricted trait set.
+
+        results = [None]
+
+        self._manager.entityTraits(
+            [self._manager.createEntityReference("bal:///anAsset⭐︎")],
+            EntityTraitsAccess.kRead,
+            self.createTestContext(),
+            lambda idx, value: operator.setitem(results, idx, value),
+            lambda idx, error: self.fail("entityTraits should not fail"),
+        )
+        [read_result] = results
+
+        self._manager.entityTraits(
+            [self._manager.createEntityReference("bal:///anAsset⭐︎")],
+            EntityTraitsAccess.kWrite,
+            self.createTestContext(),
+            lambda idx, value: operator.setitem(results, idx, value),
+            lambda idx, error: self.fail("entityTraits should not fail"),
+        )
+        [write_result] = results
+
+        self.assertSetEqual(read_result, write_result | {VersionTrait.kId})
 
 
 class Test_resolve(FixtureAugmentedTestCase):

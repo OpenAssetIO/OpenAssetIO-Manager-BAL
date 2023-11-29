@@ -27,7 +27,7 @@ import operator
 import os
 from unittest import mock
 
-from openassetio.access import PublishingAccess, RelationsAccess, ResolveAccess
+from openassetio.access import PublishingAccess, RelationsAccess, ResolveAccess, EntityTraitsAccess
 from openassetio.trait import TraitsData
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 
@@ -83,6 +83,16 @@ class Test_simulated_latency(FixtureAugmentedTestCase):
         self.__check_simulated_latencies(
             self._manager.entityExists,
             self.create_test_entity_references(),
+            self.createTestContext(),
+        )
+
+    def test_when_entityTraits_called_then_results_delayed_by_specified_simulated_query_latency(
+        self,
+    ):
+        self.__check_simulated_latencies(
+            self._manager.entityTraits,
+            self.create_test_entity_references(),
+            EntityTraitsAccess.kWrite,
             self.createTestContext(),
         )
 

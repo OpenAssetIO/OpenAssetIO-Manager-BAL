@@ -29,7 +29,13 @@ from typing import Iterable, List, Any
 from urllib.parse import urlparse, parse_qs
 
 from openassetio import constants, EntityReference
-from openassetio.access import PolicyAccess, PublishingAccess, RelationsAccess, ResolveAccess
+from openassetio.access import (
+    EntityTraitsAccess,
+    PolicyAccess,
+    PublishingAccess,
+    RelationsAccess,
+    ResolveAccess,
+)
 from openassetio.errors import BatchElementError, ConfigurationException
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
 from openassetio.trait import TraitsData
@@ -116,6 +122,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         if capability in (
             ManagerInterface.Capability.kEntityReferenceIdentification,
             ManagerInterface.Capability.kManagementPolicyQueries,
+            ManagerInterface.Capability.kEntityTraitIntrospection,
             ManagerInterface.Capability.kResolution,
             ManagerInterface.Capability.kPublishing,
             ManagerInterface.Capability.kRelationshipQueries,
@@ -214,6 +221,32 @@ class BasicAssetLibraryInterface(ManagerInterface):
             try:
                 entity_info = self.__parse_entity_ref(ref.toString())
                 result = bal.exists(entity_info, self.__library)
+                successCallback(idx, result)
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
+
+    @simulated_delay
+    def entityTraits(
+        self, entityRefs, entityTraitsAccess, context, _hostSession, successCallback, errorCallback
+    ):
+        for idx, ref in enumerate(entityRefs):
+            try:
+                entity_info = self.__parse_entity_ref(ref.toString())
+
+                if entityTraitsAccess == EntityTraitsAccess.kRead:
+                    entity = bal.entity(entity_info, self.__library)
+                    result = set(entity.traits.keys())
+                    # VersionTrait for read, but not for write.
+                    result |= {VersionTrait.kId}
+                else:  # entityTraitsAccess == EntityTraitsAccess.kWrite
+                    if bal.exists(entity_info, self.__library):
+                        entity = bal.entity(entity_info, self.__library)
+                        result = set(entity.traits.keys())
+                    else:
+                        # Non-existent entities are writable with no
+                        # trait restrictions.
+                        result = set()
+
                 successCallback(idx, result)
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
