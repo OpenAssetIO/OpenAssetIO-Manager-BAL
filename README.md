@@ -84,7 +84,6 @@ working directory is set to a checkout of the
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements.txt
 python -m pip install -r tests/requirements.txt
 python -m pip install .
 python -m pytest ./tests
