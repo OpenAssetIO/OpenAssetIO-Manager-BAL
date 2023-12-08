@@ -22,6 +22,7 @@ import os
 
 from openassetio import constants
 from openassetio.trait import TraitsData
+from openassetio_mediacreation.traits.lifecycle import VersionTrait
 
 
 #
@@ -50,7 +51,13 @@ ERROR_MSG_MALFORMED_REF = "Missing entity name in path component (bal:///)"
 MISSING_REF = "bal:///missing_entity"
 ERROR_MSG_MISSING_ENTITY = "Entity 'missing_entity' not found"
 
-an_existing_entity_name = next(iter(test_library["entities"].keys()))
+an_existing_entity_name, another_existing_entity_name = tuple(test_library["entities"].keys())[0:2]
+an_existing_entity_trait_set = set(
+    test_library["entities"][an_existing_entity_name]["versions"][-1]["traits"].keys()
+)
+another_existing_entity_trait_set = set(
+    test_library["entities"][another_existing_entity_name]["versions"][-1]["traits"].keys()
+)
 
 some_registerable_traitset = {"trait1", "trait2"}
 some_registerable_traitsdata = TraitsData()
@@ -127,6 +134,37 @@ fixtures = {
             "expected_error_message": ERROR_MSG_MALFORMED_REF,
         },
     },
+    "Test_entityTraits": {
+        "test_when_querying_malformed_reference_then_malformed_reference_error_is_returned": {
+            "a_malformed_reference": MALFORMED_REF,
+            "expected_error_message": ERROR_MSG_MALFORMED_REF,
+        },
+        "test_when_querying_missing_reference_for_read_then_resolution_error_is_returned": {
+            "a_reference_to_a_missing_entity": MISSING_REF,
+            "expected_error_message": ERROR_MSG_MISSING_ENTITY,
+        },
+        "test_when_read_only_entity_queried_for_write_then_access_error_is_returned": {
+            # No such thing as a read-only entity in BAL - skip for now.
+            # "a_reference_to_a_readonly_entity": ...
+        },
+        "test_when_write_only_entity_queried_for_read_then_access_error_is_returned": {
+            # Missing entities are write-only, but they have a different
+            # error behaviour, so can't be used here.
+            # "a_reference_to_a_writeonly_entity": ...
+        },
+        "test_when_multiple_references_for_read_then_same_number_of_returned_trait_sets": {
+            "first_entity_reference": f"bal:///{an_existing_entity_name}",
+            "first_entity_trait_set": an_existing_entity_trait_set | {VersionTrait.kId},
+            "second_entity_reference": f"bal:///{another_existing_entity_name}",
+            "second_entity_trait_set": another_existing_entity_trait_set | {VersionTrait.kId},
+        },
+        "test_when_multiple_references_for_write_then_same_number_of_returned_trait_sets": {
+            "first_entity_reference": f"bal:///{an_existing_entity_name}",
+            "first_entity_trait_set": an_existing_entity_trait_set,
+            "second_entity_reference": f"bal:///{another_existing_entity_name}",
+            "second_entity_trait_set": another_existing_entity_trait_set,
+        },
+    },
     "Test_resolve": {
         "shared": {
             "a_reference_to_a_readable_entity": f"bal:///{an_existing_entity_name}",
@@ -135,7 +173,7 @@ fixtures = {
             "the_error_string_for_a_reference_to_a_readonly_entity": (
                 "Unsupported access mode for resolve"
             ),
-            "a_reference_to_a_missing_entity": "bal:///missing_entity",
+            "a_reference_to_a_missing_entity": MISSING_REF,
             "the_error_string_for_a_reference_to_a_missing_entity": ERROR_MSG_MISSING_ENTITY,
             "a_malformed_reference": MALFORMED_REF,
             "the_error_string_for_a_malformed_reference": ERROR_MSG_MALFORMED_REF,

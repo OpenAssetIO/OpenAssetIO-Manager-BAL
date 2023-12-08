@@ -5,7 +5,7 @@
 name = "openassetio-manager-bal"
 version = "1.0.0a13"
 requires-python = ">=3.7"
-dependencies = ["openassetio>=1.0.0b1.rev0", "openassetio-mediacreation>=1.0.0a7"]
+dependencies = ["openassetio-mediacreation>=1.0.0a7"]
 
 authors = [
   { name = "Contributors to the OpenAssetIO project", email = "openassetio-discussion@lists.aswf.io" }
