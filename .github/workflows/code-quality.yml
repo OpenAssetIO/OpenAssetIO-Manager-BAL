@@ -14,7 +14,7 @@ jobs:
           python-version: 3.9
 
       - name: Download wheels from commit OpenAssetIO PR
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build-wheels.yml
           workflow_conclusion: success
