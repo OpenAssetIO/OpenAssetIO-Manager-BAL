@@ -30,7 +30,7 @@ import os
 import string
 
 from dataclasses import dataclass
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set, Optional, Tuple
 
 
 @dataclass
@@ -55,6 +55,7 @@ class Entity:
     version: int
     traits: Dict[str, dict]
     relations: List[dict]
+    supported_access_modes: Tuple[str] = ("read",)
 
 
 @dataclass
