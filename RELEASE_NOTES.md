@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v1.0.0-alpha.xx (on release: reinstate `openassetio` dependency)
+v1.0.0-alpha.xx
 ---------------
 
 ### Breaking changes
