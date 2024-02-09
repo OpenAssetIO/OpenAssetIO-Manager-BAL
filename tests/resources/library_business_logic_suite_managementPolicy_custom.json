@@ -22,6 +22,33 @@
           "policy": {"bal:test.SomePolicy": {}}
         }
       ]
+    },
+    "createRelated": {
+      "default": {},
+      "exceptions": [
+        {
+          "traitSet": ["a", "managed", "trait", "set"],
+          "policy": {"bal:test.SomePolicy": {}}
+        }
+      ]
+    },
+    "required": {
+      "default": {},
+      "exceptions": [
+        {
+          "traitSet": ["a", "managed", "trait", "set"],
+          "policy": {"bal:test.SomePolicy": {}}
+        }
+      ]
+    },
+    "managerDriven": {
+      "default": {},
+      "exceptions": [
+        {
+          "traitSet": ["a", "managed", "trait", "set"],
+          "policy": {"bal:test.SomePolicy": {}}
+        }
+      ]
     }
   },
   "entities": {}

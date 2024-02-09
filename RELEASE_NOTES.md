@@ -21,6 +21,11 @@ v1.0.0-alpha.xx (on release: reinstate `openassetio` dependency)
 - Added support for the `entityTraits` core API method.
   [#89](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/89)
 
+- Added support for the `kRequired` and `kManagerDriven` access modes in
+  `managementPolicy` queries. Added support for access modes other than
+  `kRead` in `resolve` queries (i.e. `kManagerDriven`).
+  [#98](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/98)
+
 v1.0.0-alpha.13
 ---------------
 

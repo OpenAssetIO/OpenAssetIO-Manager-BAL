@@ -6,6 +6,15 @@
     },
     "write": {
       "default": {}
+    },
+    "createRelated": {
+      "default": {}
+    },
+    "required": {
+      "default": {}
+    },
+    "managerDriven": {
+      "default": {}
     }
   },
   "entities": {
@@ -37,6 +46,17 @@
             "string": { "value": "resolved from 'another 𝓐𝓼𝓼𝓼𝓮𝔱' with a 📟" },
             "number": {}
           }
+        }
+      ]
+    },
+    "a manager driven asset": {
+      "versions": [
+        {
+          "traits": {
+            "string": { "value": "resolved value" },
+            "number": {}
+          },
+          "supported_access_modes": ["managerDriven"]
         }
       ]
     },

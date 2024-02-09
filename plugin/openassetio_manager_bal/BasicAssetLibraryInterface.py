@@ -31,10 +31,9 @@ from urllib.parse import urlparse, parse_qs
 from openassetio import constants, EntityReference
 from openassetio.access import (
     EntityTraitsAccess,
-    PolicyAccess,
     PublishingAccess,
     RelationsAccess,
-    ResolveAccess,
+    kAccessNames,
 )
 from openassetio.errors import BatchElementError, ConfigurationException
 from openassetio.managerApi import ManagerInterface, EntityReferencePagerInterface
@@ -181,12 +180,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
         )
 
     def managementPolicy(self, traitSets, access, context, hostSession):
-        access_keys = {PolicyAccess.kRead: "read", PolicyAccess.kWrite: "write"}
-        key = access_keys.get(access)
-        if not key:
-            # kCreateRelated unsupported.
-            return [TraitsData() for _ in traitSets]
-
         ## NOTE:
         #
         # BAL _should_ really explicitly handle the versioning related
@@ -208,7 +201,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
         #    set to indicate it can be resolved.
 
         return [
-            self.__dict_to_traits_data(bal.management_policy(trait_set, key, self.__library))
+            self.__dict_to_traits_data(
+                bal.management_policy(trait_set, kAccessNames[int(access)], self.__library)
+            )
             for trait_set in traitSets
         ]
 
@@ -263,19 +258,23 @@ class BasicAssetLibraryInterface(ManagerInterface):
         errorCallback,
     ):
         # pylint: disable=too-many-locals
-        if not self.__validate_access(
-            "resolve",
-            (ResolveAccess.kRead,),
-            access,
-            entityReferences,
-            errorCallback,
-        ):
-            return
-
         for idx, ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(ref.toString())
                 entity = bal.entity(entity_info, self.__library)
+
+                # Ensure this entity supports the type of access
+                # requested.
+                if kAccessNames[int(access)] not in entity.supported_access_modes:
+                    errorCallback(
+                        idx,
+                        BatchElementError(
+                            BatchElementError.ErrorCode.kEntityAccessError,
+                            "Unsupported access mode for resolve",
+                        ),
+                    )
+                    continue
+
                 result = TraitsData()
                 for trait in traitSet:
                     trait_data = entity.traits.get(trait)

@@ -337,13 +337,33 @@ class Test_managementPolicy_library_specified_behavior(LibraryOverrideTestCase):
 
         self.assertListEqual(actual, expected)
 
-    def test_returns_unsupported_policy_for_createRelated_for_all_trait_sets(self):
-        trait_sets = self.__read_trait_sets + self.__write_trait_sets
-
+    def test_returns_expected_policy_for_createRelated_for_all_trait_sets(self):
         context = self.createTestContext()
-        expected = [TraitsData()] * len(trait_sets)
+        expected = [TraitsData(), TraitsData({"bal:test.SomePolicy"})]
 
-        actual = self._manager.managementPolicy(trait_sets, PolicyAccess.kCreateRelated, context)
+        actual = self._manager.managementPolicy(
+            self.__write_trait_sets, PolicyAccess.kCreateRelated, context
+        )
+
+        self.assertListEqual(actual, expected)
+
+    def test_returns_expected_policy_for_required_for_all_trait_sets(self):
+        context = self.createTestContext()
+        expected = [TraitsData(), TraitsData({"bal:test.SomePolicy"})]
+
+        actual = self._manager.managementPolicy(
+            self.__write_trait_sets, PolicyAccess.kRequired, context
+        )
+
+        self.assertListEqual(actual, expected)
+
+    def test_returns_expected_policy_for_managerDriven_for_all_trait_sets(self):
+        context = self.createTestContext()
+        expected = [TraitsData(), TraitsData({"bal:test.SomePolicy"})]
+
+        actual = self._manager.managementPolicy(
+            self.__write_trait_sets, PolicyAccess.kManagerDriven, context
+        )
 
         self.assertListEqual(actual, expected)
 
@@ -514,7 +534,7 @@ class Test_resolve(FixtureAugmentedTestCase):
         self._manager.resolve(
             entity_references,
             trait_set,
-            ResolveAccess.kWrite,
+            ResolveAccess.kManagerDriven,
             context,
             lambda idx, _: self.fail(
                 f"Unexpected success for '{entity_references[idx].toString()}'"
@@ -524,6 +544,39 @@ class Test_resolve(FixtureAugmentedTestCase):
         )
 
         self.assertListEqual(actual, expected)
+
+    def test_when_explicitly_supported_access_then_can_resolve_supported_access(self):
+        trait_set = {"string", "number", "test-data"}
+        expected = TraitsData({"string", "number"})
+        expected.setTraitProperty("string", "value", "resolved value")
+        context = self.createTestContext()
+
+        actual = self._manager.resolve(
+            self._manager.createEntityReference("bal:///a manager driven asset"),
+            trait_set,
+            ResolveAccess.kManagerDriven,
+            context,
+        )
+
+        self.assertEqual(actual, expected)
+
+    def test_when_explicitly_supported_access_then_cannot_resolve_unsupported_access(self):
+        trait_set = {"string", "number", "test-data"}
+        expected = BatchElementError(
+            BatchElementError.ErrorCode.kEntityAccessError,
+            "Unsupported access mode for resolve",
+        )
+        context = self.createTestContext()
+
+        actual = self._manager.resolve(
+            self._manager.createEntityReference("bal:///a manager driven asset"),
+            trait_set,
+            ResolveAccess.kRead,
+            context,
+            Manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual, expected)
 
 
 class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):

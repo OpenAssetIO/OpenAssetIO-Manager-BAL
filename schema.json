@@ -150,6 +150,201 @@
           },
           "required": ["default"],
           "additionalProperties": false
+        },
+        "required": {
+          "type": "object",
+          "description": "Custom managementPolicy responses for required access contexts",
+          "properties": {
+            "default": {
+              "description": "The default policy unless an exception is specified",
+              "type": "object",
+              "patternProperties": {
+                ".*": {
+                  "description": "The trait's property values.",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "exceptions": {
+              "descriptions": "Custom policies that override the default",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "A policy for a specific trait set, that must match the request exactly",
+                "properties": {
+                  "traitSet": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "policy": {
+                    "type": "object",
+                    "patternProperties": {
+                      ".*": {
+                        "description": "The trait's property values.",
+                        "type": "object",
+                        "patternProperties": {
+                          ".*": {
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "additionalProperties": false,
+                "required": ["traitSet", "policy"]
+              }
+            }
+          },
+          "required": ["default"],
+          "additionalProperties": false
+        },
+        "createRelated": {
+          "type": "object",
+          "description": "Custom managementPolicy responses for create related access contexts",
+          "properties": {
+            "default": {
+              "description": "The default policy unless an exception is specified",
+              "type": "object",
+              "patternProperties": {
+                ".*": {
+                  "description": "The trait's property values.",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "exceptions": {
+              "descriptions": "Custom policies that override the default",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "A policy for a specific trait set, that must match the request exactly",
+                "properties": {
+                  "traitSet": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "policy": {
+                    "type": "object",
+                    "patternProperties": {
+                      ".*": {
+                        "description": "The trait's property values.",
+                        "type": "object",
+                        "patternProperties": {
+                          ".*": {
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "additionalProperties": false,
+                "required": ["traitSet", "policy"]
+              }
+            }
+          },
+          "required": ["default"],
+          "additionalProperties": false
+        },
+        "managerDriven": {
+          "type": "object",
+          "description": "Custom managementPolicy responses for manager driven access contexts",
+          "properties": {
+            "default": {
+              "description": "The default policy unless an exception is specified",
+              "type": "object",
+              "patternProperties": {
+                ".*": {
+                  "description": "The trait's property values.",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "exceptions": {
+              "descriptions": "Custom policies that override the default",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "A policy for a specific trait set, that must match the request exactly",
+                "properties": {
+                  "traitSet": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "policy": {
+                    "type": "object",
+                    "patternProperties": {
+                      ".*": {
+                        "description": "The trait's property values.",
+                        "type": "object",
+                        "patternProperties": {
+                          ".*": {
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "additionalProperties": false,
+                "required": ["traitSet", "policy"]
+              }
+            }
+          },
+          "required": ["default"],
+          "additionalProperties": false
         }
       },
       "required": ["read", "write"],
@@ -183,6 +378,13 @@
                           }
                         }
                       }
+                    }
+                  },
+                  "supported_access_modes": {
+                    "description": "Supported access modes for this entity",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
                     }
                   }
                 },
