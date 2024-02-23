@@ -278,7 +278,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 result = TraitsData()
                 for trait in traitSet:
                     trait_data = entity.traits.get(trait)
-                    if trait_data is not None:
+                    if trait_data:
                         self.__add_trait_to_traits_data(trait, trait_data, result)
 
                 if VersionTrait.kId in traitSet:
