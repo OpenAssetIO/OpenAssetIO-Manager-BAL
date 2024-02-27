@@ -492,10 +492,20 @@ class Test_resolve(FixtureAugmentedTestCase):
         trait_set = {"string", "number", "test-data"}
         context = self.createTestContext()
 
-        results = [None] * len(entity_references)
+        expected_results = []
+        for entity_dict in self.__entities.values():
+            expected_result = TraitsData()
+            for trait_id, trait_properties in entity_dict.items():
+                # Note: deliberately not imbuing traits with no
+                # properties, as per API docs.
+                for property_key, property_value in trait_properties.items():
+                    expected_result.setTraitProperty(trait_id, property_key, property_value)
+            expected_results.append(expected_result)
+
+        actual_results = [None] * len(entity_references)
 
         def success_cb(idx, traits_data):
-            results[idx] = traits_data
+            actual_results[idx] = traits_data
 
         def error_cb(idx, batchElementError):
             self.fail(
@@ -507,14 +517,7 @@ class Test_resolve(FixtureAugmentedTestCase):
             entity_references, trait_set, ResolveAccess.kRead, context, success_cb, error_cb
         )
 
-        for ref, result in zip(entity_references, results):
-            # Check all traits are present, and their properties.
-            # TODO(tc): When we have a better introspection API in
-            # TraitsData, we can assert there aren't any bonus values.
-            for trait in self.__entities[ref.toString()].keys():
-                self.assertTrue(result.hasTrait(trait))
-                for property_, value in self.__entities[ref.toString()][trait].items():
-                    self.assertEqual(result.getTraitProperty(trait, property_), value)
+        self.assertEqual(actual_results, expected_results)
 
     def test_when_unsupported_access_then_kEntityAccessError_returned(self):
         entity_reference_str = next(iter(self.__entities.keys()))
@@ -547,7 +550,7 @@ class Test_resolve(FixtureAugmentedTestCase):
 
     def test_when_explicitly_supported_access_then_can_resolve_supported_access(self):
         trait_set = {"string", "number", "test-data"}
-        expected = TraitsData({"string", "number"})
+        expected = TraitsData({"string"})
         expected.setTraitProperty("string", "value", "resolved value")
         context = self.createTestContext()
 

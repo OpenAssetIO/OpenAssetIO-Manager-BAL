@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+---------------
+
+### Bug fixes
+
+- Fixed `resolve` to no longer imbue entity traits that have no
+  property values.
+
 v1.0.0-alpha.14
 ---------------
 
