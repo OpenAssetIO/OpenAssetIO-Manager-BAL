@@ -230,6 +230,8 @@ def _entity_version_dict_and_tag(
     """
     entity_dict = _ensure_library_entity_dict(entity_info, library)
     versions_list = entity_dict["versions"]
+    if not versions_list:
+        return None, None
 
     if entity_info.version:
         version_index = entity_info.version - 1
@@ -349,5 +351,5 @@ class InvalidEntityVersion(RuntimeError):
 
     def __init__(self, entity_info: EntityInfo):
         super().__init__(
-            f"Entity '{entity_info.name}' does not have " f"a version {entity_info.version}"
+            f"Entity '{entity_info.name}' does not have a version {entity_info.version or 1}"
         )

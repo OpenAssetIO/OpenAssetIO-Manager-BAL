@@ -21,6 +21,11 @@ v1.0.0-alpha.x
 - Fixed `resolve` to no longer imbue entity traits that have no
   property values.
 
+- Fixed to trigger a `kEntityResolutionError` result, rather than
+  `IndexError` exception, when querying an empty `"versions"` list in
+  the JSON database.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
 v1.0.0-alpha.14
 ---------------
 

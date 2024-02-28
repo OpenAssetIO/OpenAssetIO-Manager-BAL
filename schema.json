@@ -360,7 +360,7 @@
             "versions": {
               "type": "array",
               "description": "The versions array holds the actual data, the array index is used as the version number.",
-              "minItems": 1,
+              "minItems": 0,
               "items": {
                 "type": "object",
                 "description": "The data for any given entity.",

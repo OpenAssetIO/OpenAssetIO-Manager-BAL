@@ -636,7 +636,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         elif isinstance(exc, bal.UnknownBALEntity):
             code = BatchElementError.ErrorCode.kEntityResolutionError
         elif isinstance(exc, bal.InvalidEntityVersion):
-            code = BatchElementError.ErrorCode.kMalformedEntityReference
+            code = BatchElementError.ErrorCode.kEntityResolutionError
         else:
             raise exc
 

@@ -55,6 +55,9 @@
         }
       ]
     },
+    "an asset with no versions": {
+      "versions": []
+    },
     "a manager driven asset": {
       "versions": [
         {

@@ -519,6 +519,22 @@ class Test_resolve(FixtureAugmentedTestCase):
 
         self.assertEqual(actual_results, expected_results)
 
+    def test_when_entity_has_no_versions_then_EntityResolutionError(self):
+        expected = BatchElementError(
+            BatchElementError.ErrorCode.kEntityResolutionError,
+            "Entity 'an asset with no versions' does not have a version 1",
+        )
+
+        actual = self._manager.resolve(
+            self._manager.createEntityReference("bal:///an asset with no versions"),
+            set(),
+            ResolveAccess.kRead,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual, expected)
+
     def test_when_unsupported_access_then_kEntityAccessError_returned(self):
         entity_reference_str = next(iter(self.__entities.keys()))
         entity_references = [self._manager.createEntityReference(entity_reference_str)]
