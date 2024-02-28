@@ -58,16 +58,53 @@
     "an asset with no versions": {
       "versions": []
     },
+    "a read only asset": {
+      "versions": [
+        {
+          "traits": {
+            "string": {"value": "resolved value"}
+          }
+        }
+      ],
+      "overrideByAccess": {
+        "managerDriven": {},
+        "write": {}
+      }
+    },
     "a manager driven asset": {
       "versions": [
         {
           "traits": {
-            "string": { "value": "resolved value" },
-            "number": {}
-          },
-          "supported_access_modes": ["managerDriven"]
+            "string": {"value": "impossible to resolve - see 'overrideByAccess'"},
+            "number": {"value": 123}
+          }
         }
-      ]
+      ],
+      "overrideByAccess": {
+        "read": null,
+        "managerDriven": {
+          "traits": {
+            "string": {"value": "manager driven value"}
+          }
+        }
+      }
+    },
+    "an asset with required traits for publish": {
+      "versions": [
+        {
+          "traits": {
+            "string": {"value": "resolved value"},
+            "number": {"value": 123}
+          }
+        }
+      ],
+      "overrideByAccess": {
+        "write": {
+          "traits": {
+            "number": {}
+          }
+        }
+      }
     },
     "entity/original": {
       "versions": [{"traits": {}}],

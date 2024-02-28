@@ -169,9 +169,9 @@ fixtures = {
         "shared": {
             "a_reference_to_a_readable_entity": f"bal:///{an_existing_entity_name}",
             "a_set_of_valid_traits": {"string", "number"},
-            "a_reference_to_a_readonly_entity": f"bal:///{an_existing_entity_name}",
+            "a_reference_to_a_readonly_entity": "bal:///a read only asset",
             "the_error_string_for_a_reference_to_a_readonly_entity": (
-                "Unsupported access mode for resolve"
+                "Entity 'a read only asset' is inaccessible for managerDriven"
             ),
             "a_reference_to_a_missing_entity": MISSING_REF,
             "the_error_string_for_a_reference_to_a_missing_entity": ERROR_MSG_MISSING_ENTITY,

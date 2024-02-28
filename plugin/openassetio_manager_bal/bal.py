@@ -30,7 +30,7 @@ import os
 import string
 
 from dataclasses import dataclass
-from typing import Dict, List, Set, Optional, Tuple
+from typing import Dict, List, Set, Optional
 
 
 @dataclass
@@ -43,6 +43,7 @@ class EntityInfo:
 
     name: str
     version: Optional[int]
+    access: str
 
 
 @dataclass
@@ -55,7 +56,6 @@ class Entity:
     version: int
     traits: Dict[str, dict]
     relations: List[dict]
-    supported_access_modes: Tuple[str] = ("read",)
 
 
 @dataclass
@@ -101,7 +101,7 @@ def exists(entity_info: EntityInfo, library: dict) -> bool:
         return False
 
     version_dict, _ = _entity_version_dict_and_tag(entity_info, library)
-    if not version_dict:
+    if version_dict is None:
         return False
 
     return True
@@ -118,14 +118,22 @@ def entity(entity_info: EntityInfo, library: dict) -> Entity:
     relations = [
         Relation(
             traits=relation["traits"],
-            entity_infos=[EntityInfo(name, version=None) for name in relation["entities"]],
+            entity_infos=[
+                EntityInfo(name, version=None, access=entity_info.access)
+                for name in relation["entities"]
+            ],
         )
         for relation in entity_dict.get("relations", [])
     ]
 
     version_dict, version_idx = _entity_version_dict_and_tag(entity_info, library)
-    if not version_dict:
+    if version_dict is None:
+        # No version found or explicitly null entry, simulating a failed
+        # resolution.
         raise InvalidEntityVersion(entity_info)
+    if version_dict.get("traits") is None:
+        # Version found but dict empty, simulating an access error.
+        raise InaccessibleEntity(entity_info)
 
     # Expand vars late to allow more flexibility
     expanded_version_dict = _copy_and_expand_trait_properties(version_dict, library)
@@ -165,11 +173,11 @@ def versions(entity_info: EntityInfo, include_latest: bool, library: dict) -> Li
         raise UnknownBALEntity(entity_info)
 
     if include_latest:
-        results.append(EntityInfo(name=entity_info.name, version=None))
+        results.append(EntityInfo(name=entity_info.name, version=None, access=entity_info.access))
 
     num_versions = len(entity_dict["versions"])
     for i in range(num_versions, 0, -1):
-        results.append(EntityInfo(name=entity_info.name, version=i))
+        results.append(EntityInfo(name=entity_info.name, version=i, access=entity_info.access))
 
     return results
 
@@ -230,6 +238,11 @@ def _entity_version_dict_and_tag(
     """
     entity_dict = _ensure_library_entity_dict(entity_info, library)
     versions_list = entity_dict["versions"]
+
+    access_overrides = entity_dict.get("overrideByAccess", {})
+    if entity_info.access in access_overrides:
+        return access_overrides[entity_info.access], entity_info.version
+
     if not versions_list:
         return None, None
 
@@ -353,3 +366,12 @@ class InvalidEntityVersion(RuntimeError):
         super().__init__(
             f"Entity '{entity_info.name}' does not have a version {entity_info.version or 1}"
         )
+
+
+class InaccessibleEntity(RuntimeError):
+    """
+    An exception raised when an entity is found but is inaccessible.
+    """
+
+    def __init__(self, entity_info: EntityInfo):
+        super().__init__(f"Entity '{entity_info.name}' is inaccessible for {entity_info.access}")

@@ -379,17 +379,42 @@
                         }
                       }
                     }
-                  },
-                  "supported_access_modes": {
-                    "description": "Supported access modes for this entity",
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
                   }
                 },
                 "required": ["traits"],
                 "additionalProperties": false
+              }
+            },
+            "overrideByAccess": {
+              "type": "object",
+              "description": "Override of version data per access mode.",
+              "patternProperties": {
+                ".*": {
+                  "type": ["object", "null"],
+                  "description": "Mapping of access mode to entity version data.",
+                  "properties": {
+                    "traits": {
+                      "description": "Traits and their associated properties for the entity.",
+                      "type": "object",
+                      "patternProperties": {
+                        ".*": {
+                          "description": "The trait's property values.",
+                          "type": "object",
+                          "patternProperties": {
+                            ".*": {
+                              "type": [
+                                "string",
+                                "number",
+                                "boolean"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
               }
             },
             "relations": {
