@@ -880,6 +880,25 @@ class Test_preflight(FixtureAugmentedTestCase):
         for ref in result_references:
             self.assertFalse("v=" in ref.toString())
 
+    def test_when_unsupported_trait_set_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///new")
+        traits_data = TraitsData({"an", "ignored", "trait", "set"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing is not supported for the given trait set",
+        )
+
+        actual_result = self._manager.preflight(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+
 
 class Test_register(FixtureAugmentedTestCase):
     def test_when_ref_is_new_then_entity_created_with_versioned_reference(self):
@@ -1003,6 +1022,24 @@ class Test_register(FixtureAugmentedTestCase):
         )
 
         return published_refs[0]
+
+    def test_when_unsupported_trait_set_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///new")
+        traits_data = TraitsData({"an", "ignored", "trait", "set"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing is not supported for the given trait set",
+        )
+
+        actual_result = self._manager.register(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
 
 
 class Test_getWithRelationship_versions(GetWithRelationshipTestCase):

@@ -5,7 +5,13 @@
       "default": {}
     },
     "write": {
-      "default": {}
+      "default": {"bal:test.SomePolicy":  {}},
+      "exceptions": [
+        {
+          "traitSet": ["an", "ignored", "trait", "set"],
+          "policy": {}
+        }
+      ]
     },
     "createRelated": {
       "default": {}

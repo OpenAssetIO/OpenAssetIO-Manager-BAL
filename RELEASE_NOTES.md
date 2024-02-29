@@ -10,6 +10,12 @@ v1.0.0-alpha.x
   of new API features.
   [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
 
+### New features
+
+- Added validation against the `managementPolicy` entry in JSON database
+  when publishing.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
 ### Bug fixes
 
 - Fixed `resolve` to no longer imbue entity traits that have no

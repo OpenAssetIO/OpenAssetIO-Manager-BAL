@@ -311,6 +311,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
             return
 
         for idx, ref in enumerate(targetEntityRefs):
+            if not self.__validate_publish_policy(traitsDatas[idx], access, idx, errorCallback):
+                continue
             try:
                 # Remove version info from the reference, as publishing will
                 # will always create a new version.
@@ -342,6 +344,10 @@ class BasicAssetLibraryInterface(ManagerInterface):
             return
 
         for idx, ref in enumerate(targetEntityRefs):
+            if not self.__validate_publish_policy(
+                entityTraitsDatas[idx], access, idx, errorCallback
+            ):
+                continue
             try:
                 entity_info = self.__parse_entity_ref(ref.toString())
                 traits_dict = self.__traits_data_to_dict(entityTraitsDatas[idx])
@@ -351,6 +357,21 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
+
+    def __validate_publish_policy(self, traits_data, access, idx, error_callback):
+        policy = bal.management_policy(
+            traits_data.traitSet(), kAccessNames[access], self.__library
+        )
+        if not policy:
+            error_callback(
+                idx,
+                BatchElementError(
+                    BatchElementError.ErrorCode.kInvalidTraitSet,
+                    "Publishing is not supported for the given trait set",
+                ),
+            )
+            return False
+        return True
 
     @simulated_delay
     def getWithRelationship(
