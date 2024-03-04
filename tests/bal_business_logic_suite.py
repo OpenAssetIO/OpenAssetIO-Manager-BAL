@@ -950,6 +950,43 @@ class Test_preflight(FixtureAugmentedTestCase):
 
         self.assertEqual(actual_result, expected_result)
 
+    def test_when_required_traits_for_entity_missing_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference(
+            "bal:///an asset with required traits for publish"
+        )
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing to this entity requires traits that are missing from the input",
+        )
+
+        actual_result = self._manager.preflight(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+    def test_when_read_only_entity_then_EntityAccessError_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///a read only asset")
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kEntityAccessError,
+            "Entity 'a read only asset' is inaccessible for write",
+        )
+
+        actual_result = self._manager.preflight(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
 
 
 class Test_register(FixtureAugmentedTestCase):
@@ -1081,6 +1118,44 @@ class Test_register(FixtureAugmentedTestCase):
         expected_result = BatchElementError(
             BatchElementError.ErrorCode.kInvalidTraitSet,
             "Publishing is not supported for the given trait set",
+        )
+
+        actual_result = self._manager.register(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+    def test_when_required_traits_for_entity_missing_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference(
+            "bal:///an asset with required traits for publish"
+        )
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing to this entity requires traits that are missing from the input",
+        )
+
+        actual_result = self._manager.register(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+    def test_when_read_only_entity_then_EntityAccessError_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///a read only asset")
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kEntityAccessError,
+            "Entity 'a read only asset' is inaccessible for write",
         )
 
         actual_result = self._manager.register(

@@ -305,10 +305,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
             if not self.__validate_publish_policy(traitsDatas[idx], access, idx, errorCallback):
                 continue
             try:
+                entity_info = self.__parse_entity_ref(ref.toString(), access)
+
+                if not self.__validate_publish_entity_traits(
+                    entity_info, traitsDatas[idx].traitSet(), idx, errorCallback
+                ):
+                    continue
                 # Remove version info from the reference, as publishing will
                 # will always create a new version.
                 # TODO(tc): Create a placeholder version
-                entity_info = self.__parse_entity_ref(ref.toString(), access)
                 entity_info.version = None
                 successCallback(idx, self.__build_entity_ref(entity_info))
             except Exception as exc:  # pylint: disable=broad-except
@@ -339,8 +344,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 entityTraitsDatas[idx], access, idx, errorCallback
             ):
                 continue
+
             try:
                 entity_info = self.__parse_entity_ref(ref.toString(), access)
+
+                if not self.__validate_publish_entity_traits(
+                    entity_info, entityTraitsDatas[idx].traitSet(), idx, errorCallback
+                ):
+                    continue
+
                 traits_dict = self.__traits_data_to_dict(entityTraitsDatas[idx])
                 updated_entity_info = bal.create_or_update_entity(
                     entity_info, traits_dict, self.__library
@@ -348,6 +360,25 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
+
+    def __validate_publish_entity_traits(self, entity_info, trait_ids, idx, error_callback):
+        if not bal.exists(entity_info, self.__library):
+            # Can publish with any traits if the entity doesn't exist.
+            return True
+
+        entity = bal.entity(entity_info, self.__library)
+        # Entities must be published with the same trait set as they
+        # currently have (can be overridden per access mode).
+        if not set(entity.traits.keys()).issubset(trait_ids):
+            error_callback(
+                idx,
+                BatchElementError(
+                    BatchElementError.ErrorCode.kInvalidTraitSet,
+                    "Publishing to this entity requires traits that are missing from the input",
+                ),
+            )
+            return False
+        return True
 
     def __validate_publish_policy(self, traits_data, access, idx, error_callback):
         policy = bal.management_policy(

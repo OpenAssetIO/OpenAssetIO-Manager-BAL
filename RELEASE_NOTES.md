@@ -12,8 +12,8 @@ v1.0.0-alpha.x
 
 ### New features
 
-- Added validation against the `managementPolicy` entry in JSON database
-  when publishing.
+- Added validation during publishing against `managementPolicy` and the
+  `kWrite` entity trait set.
   [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
 
 - Added `"overrideByAccess"` option in the JSON DB entity entries,
