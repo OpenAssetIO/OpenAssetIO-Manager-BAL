@@ -41,7 +41,7 @@ jobs:
           python -m pip install black
 
       - name: Check Python formatting
-        run: black --check .
+        run: black --check --diff .
 
   markdown-link-check:
     runs-on: ubuntu-latest
