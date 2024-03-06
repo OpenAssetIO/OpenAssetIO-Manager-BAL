@@ -4,6 +4,12 @@ Release Notes
 v1.0.0-alpha.x
 ---------------
 
+### Breaking changes
+
+- Minimum OpenAssetIO version increased to v1.0.0-beta.3.0 to make use
+  of new API features.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
 ### Bug fixes
 
 - Fixed `resolve` to no longer imbue entity traits that have no
