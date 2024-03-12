@@ -10,6 +10,11 @@ v1.0.0-alpha.x
   of new API features.
   [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
 
+- Renamed the key for configuring per trait set `managementPolicy`
+  responses in the JSON database from `"exceptions"` to
+  `"overrideByTraitSet"`.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
 ### New features
 
 - Added validation during publishing against `managementPolicy` and the

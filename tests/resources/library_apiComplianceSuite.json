@@ -6,7 +6,7 @@
     },
     "write": {
       "default": {"bal:test.SomePolicy":  {}},
-      "exceptions": [
+      "overrideByTraitSet": [
         {
           "traitSet": ["an", "ignored", "trait", "set"],
           "policy": {}

@@ -147,8 +147,8 @@ def management_policy(trait_set: Set[str], access: str, library: dict) -> dict:
     specific exception is provided in the library.
     """
     policies = library.get("managementPolicy", {}).get(access, {})
-    exceptions = policies.get("exceptions", [])
-    matching_exceptions = (e["policy"] for e in exceptions if set(e["traitSet"]) == trait_set)
+    overrides = policies.get("overrideByTraitSet", [])
+    matching_exceptions = (e["policy"] for e in overrides if set(e["traitSet"]) == trait_set)
     policy = next(matching_exceptions, policies.get("default"))
 
     if policy is None:
