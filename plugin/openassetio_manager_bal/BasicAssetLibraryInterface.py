@@ -19,7 +19,6 @@
 """
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
-
 import os
 import re
 import time
@@ -30,6 +29,7 @@ from urllib.parse import urlparse, parse_qs
 
 from openassetio import constants, EntityReference
 from openassetio.access import (
+    ResolveAccess,
     EntityTraitsAccess,
     PublishingAccess,
     RelationsAccess,
@@ -214,7 +214,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def entityExists(self, entityRefs, context, _hostSession, successCallback, errorCallback):
         for idx, ref in enumerate(entityRefs):
             try:
-                entity_info = self.__parse_entity_ref(ref.toString())
+                # Use resolve-for-read access mode as closest analog.
+                entity_info = self.__parse_entity_ref(ref.toString(), ResolveAccess.kRead)
                 result = bal.exists(entity_info, self.__library)
                 successCallback(idx, result)
             except Exception as exc:  # pylint: disable=broad-except
@@ -226,7 +227,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     ):
         for idx, ref in enumerate(entityRefs):
             try:
-                entity_info = self.__parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString(), entityTraitsAccess)
 
                 if entityTraitsAccess == EntityTraitsAccess.kRead:
                     entity = bal.entity(entity_info, self.__library)
@@ -260,21 +261,11 @@ class BasicAssetLibraryInterface(ManagerInterface):
         # pylint: disable=too-many-locals
         for idx, ref in enumerate(entityReferences):
             try:
-                entity_info = self.__parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString(), access)
                 entity = bal.entity(entity_info, self.__library)
 
                 # Ensure this entity supports the type of access
                 # requested.
-                if kAccessNames[int(access)] not in entity.supported_access_modes:
-                    errorCallback(
-                        idx,
-                        BatchElementError(
-                            BatchElementError.ErrorCode.kEntityAccessError,
-                            "Unsupported access mode for resolve",
-                        ),
-                    )
-                    continue
-
                 result = TraitsData()
                 for trait in traitSet:
                     trait_data = entity.traits.get(trait)
@@ -311,11 +302,18 @@ class BasicAssetLibraryInterface(ManagerInterface):
             return
 
         for idx, ref in enumerate(targetEntityRefs):
+            if not self.__validate_publish_policy(traitsDatas[idx], access, idx, errorCallback):
+                continue
             try:
+                entity_info = self.__parse_entity_ref(ref.toString(), access)
+
+                if not self.__validate_publish_entity_traits(
+                    entity_info, traitsDatas[idx].traitSet(), idx, errorCallback
+                ):
+                    continue
                 # Remove version info from the reference, as publishing will
                 # will always create a new version.
                 # TODO(tc): Create a placeholder version
-                entity_info = self.__parse_entity_ref(ref.toString())
                 entity_info.version = None
                 successCallback(idx, self.__build_entity_ref(entity_info))
             except Exception as exc:  # pylint: disable=broad-except
@@ -342,8 +340,19 @@ class BasicAssetLibraryInterface(ManagerInterface):
             return
 
         for idx, ref in enumerate(targetEntityRefs):
+            if not self.__validate_publish_policy(
+                entityTraitsDatas[idx], access, idx, errorCallback
+            ):
+                continue
+
             try:
-                entity_info = self.__parse_entity_ref(ref.toString())
+                entity_info = self.__parse_entity_ref(ref.toString(), access)
+
+                if not self.__validate_publish_entity_traits(
+                    entity_info, entityTraitsDatas[idx].traitSet(), idx, errorCallback
+                ):
+                    continue
+
                 traits_dict = self.__traits_data_to_dict(entityTraitsDatas[idx])
                 updated_entity_info = bal.create_or_update_entity(
                     entity_info, traits_dict, self.__library
@@ -351,6 +360,40 @@ class BasicAssetLibraryInterface(ManagerInterface):
                 successCallback(idx, self.__build_entity_ref(updated_entity_info))
             except Exception as exc:  # pylint: disable=broad-except
                 self.__handle_exception(exc, idx, errorCallback)
+
+    def __validate_publish_entity_traits(self, entity_info, trait_ids, idx, error_callback):
+        if not bal.exists(entity_info, self.__library):
+            # Can publish with any traits if the entity doesn't exist.
+            return True
+
+        entity = bal.entity(entity_info, self.__library)
+        # Entities must be published with the same trait set as they
+        # currently have (can be overridden per access mode).
+        if not set(entity.traits.keys()).issubset(trait_ids):
+            error_callback(
+                idx,
+                BatchElementError(
+                    BatchElementError.ErrorCode.kInvalidTraitSet,
+                    "Publishing to this entity requires traits that are missing from the input",
+                ),
+            )
+            return False
+        return True
+
+    def __validate_publish_policy(self, traits_data, access, idx, error_callback):
+        policy = bal.management_policy(
+            traits_data.traitSet(), kAccessNames[access], self.__library
+        )
+        if not policy:
+            error_callback(
+                idx,
+                BatchElementError(
+                    BatchElementError.ErrorCode.kInvalidTraitSet,
+                    "Publishing is not supported for the given trait set",
+                ),
+            )
+            return False
+        return True
 
     @simulated_delay
     def getWithRelationship(
@@ -375,7 +418,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             return
         for idx, entity_ref in enumerate(entityReferences):
             try:
-                entity_info = self.__parse_entity_ref(entity_ref.toString())
+                entity_info = self.__parse_entity_ref(entity_ref.toString(), access)
                 relations = self.__get_relations(
                     entity_info, relationshipTraitsData, resultTraitSet
                 )
@@ -413,7 +456,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             return
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
-                entity_info = self.__parse_entity_ref(entityReference.toString())
+                entity_info = self.__parse_entity_ref(entityReference.toString(), access)
                 relations = self.__get_relations(entity_info, relationship, resultTraitSet)
                 successCallback(
                     idx,
@@ -499,7 +542,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         )
 
     @classmethod
-    def __parse_entity_ref(cls, entity_ref: str) -> bal.EntityInfo:
+    def __parse_entity_ref(cls, entity_ref: str, access) -> bal.EntityInfo:
         """
         Decomposes an entity reference into bal fields.
         """
@@ -517,7 +560,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             params = parse_qs(uri_parts.query)
             version = cls.__version_from_query_params(params, entity_ref)
 
-        return bal.EntityInfo(name=name, version=version)
+        return bal.EntityInfo(name=name, version=version, access=kAccessNames[access])
 
     @staticmethod
     def __version_from_query_params(query_params, entity_ref) -> int:
@@ -615,7 +658,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
         elif isinstance(exc, bal.UnknownBALEntity):
             code = BatchElementError.ErrorCode.kEntityResolutionError
         elif isinstance(exc, bal.InvalidEntityVersion):
-            code = BatchElementError.ErrorCode.kMalformedEntityReference
+            code = BatchElementError.ErrorCode.kEntityResolutionError
+        elif isinstance(exc, bal.InaccessibleEntity):
+            code = BatchElementError.ErrorCode.kEntityAccessError
         else:
             raise exc
 

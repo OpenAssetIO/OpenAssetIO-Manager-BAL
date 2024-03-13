@@ -467,6 +467,35 @@ class Test_entityTraits(FixtureAugmentedTestCase):
 
         self.assertSetEqual(read_result, write_result | {VersionTrait.kId})
 
+    def test_when_explicit_write_traits_then_those_traits_returned(self):
+        ref = self._manager.createEntityReference(
+            "bal:///an asset with required traits for publish"
+        )
+        context = self.createTestContext()
+
+        read_traits = self._manager.entityTraits(ref, EntityTraitsAccess.kRead, context)
+        write_traits = self._manager.entityTraits(ref, EntityTraitsAccess.kWrite, context)
+
+        self.assertSetEqual(read_traits, {"string", "number", VersionTrait.kId})
+        self.assertSetEqual(write_traits, {"number"})
+
+    def test_when_read_only_entity_then_EntityAccessError_returned(self):
+        ref = self._manager.createEntityReference("bal:///a read only asset")
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kEntityAccessError,
+            "Entity 'a read only asset' is inaccessible for write",
+        )
+        context = self.createTestContext()
+
+        actual_result = self._manager.entityTraits(
+            ref,
+            EntityTraitsAccess.kWrite,
+            context,
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
 
 class Test_resolve(FixtureAugmentedTestCase):
     """
@@ -519,39 +548,44 @@ class Test_resolve(FixtureAugmentedTestCase):
 
         self.assertEqual(actual_results, expected_results)
 
-    def test_when_unsupported_access_then_kEntityAccessError_returned(self):
-        entity_reference_str = next(iter(self.__entities.keys()))
-        entity_references = [self._manager.createEntityReference(entity_reference_str)]
-        trait_set = {"string", "number", "test-data"}
+    def test_when_entity_has_no_versions_then_EntityResolutionError(self):
+        expected = BatchElementError(
+            BatchElementError.ErrorCode.kEntityResolutionError,
+            "Entity 'an asset with no versions' does not have a version 1",
+        )
 
-        expected = [
-            BatchElementError(
-                BatchElementError.ErrorCode.kEntityAccessError,
-                "Unsupported access mode for resolve",
-            )
-        ]
+        actual = self._manager.resolve(
+            self._manager.createEntityReference("bal:///an asset with no versions"),
+            set(),
+            ResolveAccess.kRead,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
 
+        self.assertEqual(actual, expected)
+
+    def test_when_implicitly_supported_access_then_can_resolve_access(self):
+        trait_set = {"string", "wont-resolve"}
+        expected = TraitsData({"string"})
+        # Kludge to satisfy black formatting difference at exactly 99
+        # chars on CI vs. local. Unicode shenanigans?
+        expected_property_value = "resolved from 'anAsset⭐︎' version 2 using 📠"
+        expected.setTraitProperty("string", "value", expected_property_value)
         context = self.createTestContext()
-        actual = [None]
 
-        self._manager.resolve(
-            entity_references,
+        actual = self._manager.resolve(
+            self._manager.createEntityReference("bal:///anAsset⭐︎"),
             trait_set,
             ResolveAccess.kManagerDriven,
             context,
-            lambda idx, _: self.fail(
-                f"Unexpected success for '{entity_references[idx].toString()}'"
-            ),
-            # pylint: disable=cell-var-from-loop
-            lambda idx, err: operator.setitem(actual, idx, err),
         )
 
-        self.assertListEqual(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_when_explicitly_supported_access_then_can_resolve_supported_access(self):
         trait_set = {"string", "number", "test-data"}
         expected = TraitsData({"string"})
-        expected.setTraitProperty("string", "value", "resolved value")
+        expected.setTraitProperty("string", "value", "manager driven value")
         context = self.createTestContext()
 
         actual = self._manager.resolve(
@@ -563,11 +597,11 @@ class Test_resolve(FixtureAugmentedTestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_when_explicitly_supported_access_then_cannot_resolve_unsupported_access(self):
+    def test_when_access_null_then_EntityResolutionError(self):
         trait_set = {"string", "number", "test-data"}
         expected = BatchElementError(
-            BatchElementError.ErrorCode.kEntityAccessError,
-            "Unsupported access mode for resolve",
+            BatchElementError.ErrorCode.kEntityResolutionError,
+            "Entity 'a manager driven asset' does not have a version 1",
         )
         context = self.createTestContext()
 
@@ -575,6 +609,24 @@ class Test_resolve(FixtureAugmentedTestCase):
             self._manager.createEntityReference("bal:///a manager driven asset"),
             trait_set,
             ResolveAccess.kRead,
+            context,
+            Manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual, expected)
+
+    def test_when_access_blank_then_EntityAccessError(self):
+        trait_set = {"string", "number", "test-data"}
+        expected = BatchElementError(
+            BatchElementError.ErrorCode.kEntityAccessError,
+            "Entity 'a read only asset' is inaccessible for managerDriven",
+        )
+        context = self.createTestContext()
+
+        actual = self._manager.resolve(
+            self._manager.createEntityReference("bal:///a read only asset"),
+            trait_set,
+            ResolveAccess.kManagerDriven,
             context,
             Manager.BatchElementErrorPolicyTag.kVariant,
         )
@@ -880,6 +932,62 @@ class Test_preflight(FixtureAugmentedTestCase):
         for ref in result_references:
             self.assertFalse("v=" in ref.toString())
 
+    def test_when_unsupported_trait_set_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///new")
+        traits_data = TraitsData({"an", "ignored", "trait", "set"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing is not supported for the given trait set",
+        )
+
+        actual_result = self._manager.preflight(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+    def test_when_required_traits_for_entity_missing_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference(
+            "bal:///an asset with required traits for publish"
+        )
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing to this entity requires traits that are missing from the input",
+        )
+
+        actual_result = self._manager.preflight(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+    def test_when_read_only_entity_then_EntityAccessError_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///a read only asset")
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kEntityAccessError,
+            "Entity 'a read only asset' is inaccessible for write",
+        )
+
+        actual_result = self._manager.preflight(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
 
 class Test_register(FixtureAugmentedTestCase):
     def test_when_ref_is_new_then_entity_created_with_versioned_reference(self):
@@ -1003,6 +1111,62 @@ class Test_register(FixtureAugmentedTestCase):
         )
 
         return published_refs[0]
+
+    def test_when_unsupported_trait_set_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///new")
+        traits_data = TraitsData({"an", "ignored", "trait", "set"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing is not supported for the given trait set",
+        )
+
+        actual_result = self._manager.register(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+    def test_when_required_traits_for_entity_missing_then_InvalidTraitSet_returned(self):
+        entity_ref = self._manager.createEntityReference(
+            "bal:///an asset with required traits for publish"
+        )
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kInvalidTraitSet,
+            "Publishing to this entity requires traits that are missing from the input",
+        )
+
+        actual_result = self._manager.register(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
+
+    def test_when_read_only_entity_then_EntityAccessError_returned(self):
+        entity_ref = self._manager.createEntityReference("bal:///a read only asset")
+        traits_data = TraitsData({"string"})
+        expected_result = BatchElementError(
+            BatchElementError.ErrorCode.kEntityAccessError,
+            "Entity 'a read only asset' is inaccessible for write",
+        )
+
+        actual_result = self._manager.register(
+            entity_ref,
+            traits_data,
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+            self._manager.BatchElementErrorPolicyTag.kVariant,
+        )
+
+        self.assertEqual(actual_result, expected_result)
 
 
 class Test_getWithRelationship_versions(GetWithRelationshipTestCase):

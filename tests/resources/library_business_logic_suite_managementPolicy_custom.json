@@ -3,7 +3,7 @@
   "managementPolicy": {
     "read": {
       "default": {"bal:test.SomePolicy": {"exclusive": true}},
-      "exceptions": [
+      "overrideByTraitSet": [
         {
           "traitSet": ["an", "ignored", "trait", "set"],
           "policy": {}
@@ -16,7 +16,7 @@
     },
     "write": {
       "default": {},
-      "exceptions": [
+      "overrideByTraitSet": [
         {
           "traitSet": ["a", "managed", "trait", "set"],
           "policy": {"bal:test.SomePolicy": {}}
@@ -25,7 +25,7 @@
     },
     "createRelated": {
       "default": {},
-      "exceptions": [
+      "overrideByTraitSet": [
         {
           "traitSet": ["a", "managed", "trait", "set"],
           "policy": {"bal:test.SomePolicy": {}}
@@ -34,7 +34,7 @@
     },
     "required": {
       "default": {},
-      "exceptions": [
+      "overrideByTraitSet": [
         {
           "traitSet": ["a", "managed", "trait", "set"],
           "policy": {"bal:test.SomePolicy": {}}
@@ -43,7 +43,7 @@
     },
     "managerDriven": {
       "default": {},
-      "exceptions": [
+      "overrideByTraitSet": [
         {
           "traitSet": ["a", "managed", "trait", "set"],
           "policy": {"bal:test.SomePolicy": {}}

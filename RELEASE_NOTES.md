@@ -4,10 +4,38 @@ Release Notes
 v1.0.0-alpha.x
 ---------------
 
+### Breaking changes
+
+- Minimum OpenAssetIO version increased to v1.0.0-beta.3.0 to make use
+  of new API features.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
+- Renamed the key for configuring per trait set `managementPolicy`
+  responses in the JSON database from `"exceptions"` to
+  `"overrideByTraitSet"`.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
+### New features
+
+- Added validation during publishing against `managementPolicy` and the
+  `kWrite` entity trait set.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
+- Added `"overrideByAccess"` option in the JSON DB entity entries,
+  allowing per access mode overrides of returned data, with `null`
+  signalling non-existence and empty dict `{}` signalling
+  inaccessibility.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
 ### Bug fixes
 
 - Fixed `resolve` to no longer imbue entity traits that have no
   property values.
+
+- Fixed to trigger a `kEntityResolutionError` result, rather than
+  `IndexError` exception, when querying an empty `"versions"` list in
+  the JSON database.
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
 
 v1.0.0-alpha.14
 ---------------
