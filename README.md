@@ -26,8 +26,12 @@ manager behavior.
   values (using the `$var` or `${var}` syntax, escape `$` using `$$`). A
   library can also define arbitrary variables of its own under the
   top-level `variables` key. In addition, BAL provides the built-in
-  `$bal_library_path` and `$bal_library_dir` variables, which can be
-  used to anchor to the current library location.
+  `$bal_library_path`, `$bal_library_dir` and `$bal_library_dir_url`
+  variables, which can be used to anchor to the current library
+  location.
+
+  Any string undergoing expansion will also be normalized, removing
+  relative paths, if that string presents as a file URL.
 
 - The library file to be used is controlled by the `library_path`
   setting, and this should point to a library file with valid content.

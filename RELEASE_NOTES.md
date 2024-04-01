@@ -27,6 +27,11 @@ v1.0.0-alpha.x
   inaccessibility.
   [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
 
+- Add new `bal_library_dir_url` substitution variable, allowing library
+  directory to be used in places where OpenAssetIO requires a valid
+  url.
+  [#86](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/86)
+
 ### Bug fixes
 
 - Fixed `resolve` to no longer imbue entity traits that have no
