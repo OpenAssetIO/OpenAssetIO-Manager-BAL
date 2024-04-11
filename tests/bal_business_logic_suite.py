@@ -23,6 +23,7 @@ BasicAssetLibrary manager behaves with the correct business logic.
 
 import operator
 import os
+import pathlib
 
 from unittest import mock
 
@@ -43,6 +44,7 @@ from openassetio.errors import (
 )
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 from openassetio.trait import TraitsData
+from openassetio.utils import FileUrlPathConverter
 
 import openassetio_mediacreation
 from openassetio_mediacreation.traits.lifecycle import VersionTrait
@@ -669,6 +671,44 @@ class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
         expected_dir = os.path.join(os.path.dirname(__file__), "resources")
         data = self.__resolve_to_dict()
         self.assertEqual(data["bal_library_dir"], f"Library is in {expected_dir}")
+
+    def test_when_bal_library_url_used_then_expanded_to_library_directory(self):
+        expected_url = os.path.join(os.path.dirname(__file__), "resources")
+        expected_url = pathlib.Path(expected_url).resolve().as_uri()
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["bal_library_dir_url"], f"Library is in {expected_url}")
+
+    def test_when_relative_bal_library_dir_used_then_library_path_not_normalized(self):
+        # This just confirms existing behaviour when we put in url
+        # normalization, and isn't so much a statement that paths should
+        # not be normalized ... maybe they should be. We simply just
+        # didn't have a need to do that at the time.
+        expected_url = os.path.join(os.path.dirname(__file__), "resources/../aboveFile.txt")
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["relative_to_bal_library_dir"], expected_url)
+
+    def test_when_relative_bal_library_dir_url_used_then_library_path_normalized(self):
+        # Input path is "${bal_library_dir_url}/../aboveFile.txt",
+        # folder structure is tests/resources
+        # This test __file__ is in the `tests` dir.
+        expected_path = os.path.join(os.path.dirname(__file__), "aboveFile.txt")
+        if expected_path.startswith("/"):
+            expected_url = "file://" + expected_path
+        else:
+            # Windows paths have a leading drive, not /, but a url is
+            # going to have a leading /, so expect that.
+            expected_url = "file:///" + expected_path
+
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["relative_to_bal_library_dir_url"], expected_url)
+
+    def test_bal_library_dir_path_from_url_compatible(self):
+        expected_path = os.path.join(os.path.dirname(__file__), "aboveFile.txt")
+        converter = FileUrlPathConverter()
+        data = self.__resolve_to_dict()
+        substituted_url = data["relative_to_bal_library_dir_url"]
+        path = converter.pathFromUrl(substituted_url)
+        self.assertEqual(path, expected_path)
 
     def test_when_custom_library_var_used_then_expanded_to_its_value(self):
         data = self.__resolve_to_dict()

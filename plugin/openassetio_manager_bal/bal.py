@@ -28,9 +28,13 @@ import copy
 import json
 import os
 import string
+import pathlib
+
 
 from dataclasses import dataclass
 from typing import Dict, List, Set, Optional
+from urllib.parse import urlparse, urlunparse
+from urllib.request import url2pathname
 
 
 @dataclass
@@ -81,6 +85,7 @@ def load_library(path: str) -> dict:
             library.update(json.load(file))
         lib_path = os.path.abspath(path)
         lib_dir = os.path.dirname(lib_path)
+        lib_dir_url = pathlib.Path(lib_dir).as_uri()
     else:
         lib_path = ""
         lib_dir = ""
@@ -89,6 +94,7 @@ def load_library(path: str) -> dict:
     subs_vars = library.setdefault("variables", {})
     subs_vars["bal_library_path"] = lib_path
     subs_vars["bal_library_dir"] = lib_dir
+    subs_vars["bal_library_dir_url"] = lib_dir_url
 
     return library
 
@@ -343,7 +349,31 @@ def _copy_and_expand_trait_properties(entity_version_dict: dict, library: dict) 
                     os.environ, **library["variables"]
                 )
 
+                subbed_val = trait_data[prop]
+
+                if subbed_val.startswith("file:"):
+                    trait_data[prop] = normalize_file_url(subbed_val)
+
     return expanded_dict
+
+
+def normalize_file_url(maybe_file_url):
+    """
+    Any string in the library that begins with "file:" will be
+    normalized, the main point of this being to collapse relative
+    paths that have been written into the library json.
+    """
+
+    # Parse the URL into components
+    parsed_url = urlparse(maybe_file_url)
+    path = url2pathname(parsed_url.path)
+
+    # Resolve, removing relative paths, (normalizing)
+    resolved_path = str(pathlib.Path(path).resolve())
+
+    # Reconstruct the URL with the normalized path
+    reconstructed_url = urlunparse(parsed_url._replace(path=resolved_path))
+    return reconstructed_url
 
 
 class UnknownBALEntity(RuntimeError):
