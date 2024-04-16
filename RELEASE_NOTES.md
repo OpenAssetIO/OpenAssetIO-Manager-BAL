@@ -1,12 +1,12 @@
 Release Notes
 =============
 
-v1.0.0-alpha.x
+v1.0.0-alpha.15
 ---------------
 
 ### Breaking changes
 
-- Minimum OpenAssetIO version increased to v1.0.0-beta.3.0 to make use
+- Minimum OpenAssetIO version increased to v1.0.0-beta.2.1 to make use
   of new API features.
   [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
 
