@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+---------------
+
+### Bug fixes
+
+- Fixed normalisation of `file://` URLs from the JSON database such that
+  they are no longer percent decoded before being passed on to the host.
+  [#109](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/109)
+
+
 v1.0.0-alpha.15
 ---------------
 
