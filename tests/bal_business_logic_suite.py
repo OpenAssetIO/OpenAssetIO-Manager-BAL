@@ -672,9 +672,20 @@ class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
         data = self.__resolve_to_dict()
         self.assertEqual(data["bal_library_dir"], f"Library is in {expected_dir}")
 
+    def test_when_file_prefixed_but_not_url_then_regurgitated_unmodified(self):
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["a_file_prefixed_non_url"], "file:\\")
+
+    def test_when_raw_file_url_used_then_regurgitated_unmodified(self):
+        data = self.__resolve_to_dict()
+        self.assertEqual(data["a_raw_posix_file_url"], "file:///mnt/per%2520cent")
+        self.assertEqual(data["a_raw_windows_drive_file_url"], "file:///C:/per%2520cent")
+        self.assertEqual(
+            data["a_raw_windows_unc_file_url"], "file://hostname/sharename/per%2520cent"
+        )
+
     def test_when_bal_library_url_used_then_expanded_to_library_directory(self):
-        expected_url = os.path.join(os.path.dirname(__file__), "resources")
-        expected_url = pathlib.Path(expected_url).resolve().as_uri()
+        expected_url = pathlib.Path(__file__).with_name("resources").as_uri()
         data = self.__resolve_to_dict()
         self.assertEqual(data["bal_library_dir_url"], f"Library is in {expected_url}")
 
@@ -683,27 +694,22 @@ class Test_resolve_trait_property_expansion(LibraryOverrideTestCase):
         # normalization, and isn't so much a statement that paths should
         # not be normalized ... maybe they should be. We simply just
         # didn't have a need to do that at the time.
-        expected_url = os.path.join(os.path.dirname(__file__), "resources/../aboveFile.txt")
+        expected_path = os.path.join(os.path.dirname(__file__), "resources/../above%20File.txt")
         data = self.__resolve_to_dict()
-        self.assertEqual(data["relative_to_bal_library_dir"], expected_url)
+        self.assertEqual(data["relative_to_bal_library_dir"], expected_path)
 
     def test_when_relative_bal_library_dir_url_used_then_library_path_normalized(self):
-        # Input path is "${bal_library_dir_url}/../aboveFile.txt",
+        # Input path is "${bal_library_dir_url}/../above%2520File.txt",
         # folder structure is tests/resources
         # This test __file__ is in the `tests` dir.
-        expected_path = os.path.join(os.path.dirname(__file__), "aboveFile.txt")
-        if expected_path.startswith("/"):
-            expected_url = "file://" + expected_path
-        else:
-            # Windows paths have a leading drive, not /, but a url is
-            # going to have a leading /, so expect that.
-            expected_url = "file:///" + expected_path
+        expected_url = pathlib.Path(__file__).with_name("above%20File.txt").as_uri()
 
         data = self.__resolve_to_dict()
         self.assertEqual(data["relative_to_bal_library_dir_url"], expected_url)
 
     def test_bal_library_dir_path_from_url_compatible(self):
-        expected_path = os.path.join(os.path.dirname(__file__), "aboveFile.txt")
+        # Note that FileUrlPathConverter will %-decode the %2520 to %20.
+        expected_path = os.path.join(os.path.dirname(__file__), "above%20File.txt")
         converter = FileUrlPathConverter()
         data = self.__resolve_to_dict()
         substituted_url = data["relative_to_bal_library_dir_url"]

@@ -27,14 +27,13 @@ engineering practice".
 import copy
 import json
 import os
+import posixpath
 import string
 import pathlib
-
 
 from dataclasses import dataclass
 from typing import Dict, List, Set, Optional
 from urllib.parse import urlparse, urlunparse
-from urllib.request import url2pathname
 
 
 @dataclass
@@ -360,20 +359,28 @@ def _copy_and_expand_trait_properties(entity_version_dict: dict, library: dict) 
 def normalize_file_url(maybe_file_url):
     """
     Any string in the library that begins with "file:" will be
-    normalized, the main point of this being to collapse relative
-    paths that have been written into the library json.
+    normalized, the main point of this being to collapse upward
+    traversals that have been written into the library json.
     """
+    # Modified from https://stackoverflow.com/a/4317446
 
     # Parse the URL into components
     parsed_url = urlparse(maybe_file_url)
-    path = url2pathname(parsed_url.path)
 
-    # Resolve, removing relative paths, (normalizing)
-    resolved_path = str(pathlib.Path(path).resolve())
+    # Resolve upward traversals (`..`).
+    normed_path = posixpath.normpath(parsed_url.path)
+    if parsed_url.path.endswith("/"):
+        normed_path += "/"
 
-    # Reconstruct the URL with the normalized path
-    reconstructed_url = urlunparse(parsed_url._replace(path=resolved_path))
-    return reconstructed_url
+    if parsed_url.path == normed_path:
+        # No changes were made, so avoid unintended mutations by
+        # returning the input unmodified. E.g. `file:123` would get
+        # normalised to `file:///123`, which might not be what we want.
+        return maybe_file_url
+
+    # Reconstruct the URL, replacing the path component with the
+    # normalized path.
+    return urlunparse(parsed_url._replace(path=normed_path))
 
 
 class UnknownBALEntity(RuntimeError):

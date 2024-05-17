@@ -19,8 +19,12 @@
               "bal_library_dir": "Library is in $bal_library_dir",
               "bal_library_path": "Library is ${bal_library_path}",
               "bal_library_dir_url": "Library is in ${bal_library_dir_url}",
-              "relative_to_bal_library_dir_url": "${bal_library_dir_url}/../aboveFile.txt",
-              "relative_to_bal_library_dir": "${bal_library_dir}/../aboveFile.txt",
+              "a_file_prefixed_non_url": "file:\\",
+              "a_raw_posix_file_url": "file:///mnt/per%2520cent",
+              "a_raw_windows_drive_file_url": "file:///C:/per%2520cent",
+              "a_raw_windows_unc_file_url": "file://hostname/sharename/per%2520cent",
+              "relative_to_bal_library_dir_url": "${bal_library_dir_url}/../above%2520File.txt",
+              "relative_to_bal_library_dir": "${bal_library_dir}/../above%20File.txt",
               "aLibraryVar": "Value $aLibraryVar"
             }
           }
