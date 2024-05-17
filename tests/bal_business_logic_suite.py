@@ -475,8 +475,27 @@ class Test_entityTraits(FixtureAugmentedTestCase):
         )
         context = self.createTestContext()
 
-        read_traits = self._manager.entityTraits(ref, EntityTraitsAccess.kRead, context)
-        write_traits = self._manager.entityTraits(ref, EntityTraitsAccess.kWrite, context)
+        read_results = [None]
+        write_results = [None]
+
+        self._manager.entityTraits(
+            [ref],
+            EntityTraitsAccess.kRead,
+            context,
+            lambda idx, value: operator.setitem(read_results, idx, value),
+            lambda idx, error: self.fail("entityTraits should not fail"),
+        )
+
+        self._manager.entityTraits(
+            [ref],
+            EntityTraitsAccess.kWrite,
+            context,
+            lambda idx, value: operator.setitem(write_results, idx, value),
+            lambda idx, error: self.fail("entityTraits should not fail"),
+        )
+
+        [read_traits] = read_results
+        [write_traits] = write_results
 
         self.assertSetEqual(read_traits, {"string", "number", VersionTrait.kId})
         self.assertSetEqual(write_traits, {"number"})
@@ -489,12 +508,17 @@ class Test_entityTraits(FixtureAugmentedTestCase):
         )
         context = self.createTestContext()
 
-        actual_result = self._manager.entityTraits(
-            ref,
+        results = [None]
+
+        self._manager.entityTraits(
+            [ref],
             EntityTraitsAccess.kWrite,
             context,
-            self._manager.BatchElementErrorPolicyTag.kVariant,
+            lambda idx, value: self.fail("entityTraits should not succeed"),
+            lambda idx, error: operator.setitem(results, idx, error),
         )
+
+        [actual_result] = results
 
         self.assertEqual(actual_result, expected_result)
 
