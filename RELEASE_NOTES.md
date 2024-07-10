@@ -6,6 +6,11 @@ v1.0.0-alpha.x
 
 ### New features
 
+- Added support for configuring the result of `hasCapability(...)`
+  queries. This allows hosts to test their logic when dealing with
+  managers that have limited capability.
+  [#84](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/84)
+
 - Added support for `OPENASSETIO_BAL_IDENTIFIER` environment variable,
   for overriding the identifier advertised by the BAL plugin/manager.
   [#116](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/116)

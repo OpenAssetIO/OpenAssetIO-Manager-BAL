@@ -33,6 +33,7 @@ from openassetio.managerApi import ManagerInterface
 from openassetio.access import (
     PolicyAccess,
     PublishingAccess,
+    DefaultEntityAccess,
     RelationsAccess,
     ResolveAccess,
     EntityTraitsAccess,
@@ -41,6 +42,7 @@ from openassetio.errors import (
     BatchElementError,
     BatchElementException,
     ConfigurationException,
+    NotImplementedException,
 )
 from openassetio.test.manager.harness import FixtureAugmentedTestCase
 from openassetio.trait import TraitsData
@@ -83,8 +85,8 @@ class LibraryOverrideTestCase(FixtureAugmentedTestCase):
             "resources",
             self._library,
         )
-        self._manager.initialize(new_settings)
         self.addCleanup(self.cleanUp)
+        self._manager.initialize(new_settings)
 
     def cleanUp(self):
         self._manager.initialize(self.__old_settings)
@@ -370,7 +372,7 @@ class Test_managementPolicy_library_specified_behavior(LibraryOverrideTestCase):
         self.assertListEqual(actual, expected)
 
 
-class Test_hasCapability(FixtureAugmentedTestCase):
+class Test_hasCapability_default(FixtureAugmentedTestCase):
     """
     Tests that BAL reports expected capabilities
     """
@@ -393,6 +395,96 @@ class Test_hasCapability(FixtureAugmentedTestCase):
         self.assertTrue(
             interface.hasCapability(ManagerInterface.Capability.kManagementPolicyQueries)
         )
+
+
+class Test_hasCapability_override_none(LibraryOverrideTestCase):
+    _library = "library_business_logic_suite_capabilities_none.json"
+
+    def setUp(self):
+        # Override base class because otherwise it'll raise. The setUp
+        # in this case _is_ the test.
+        pass
+
+    def test_when_when_library_lists_no_capabilities_then_raises(self):
+        with self.assertRaises(ConfigurationException) as exc:
+            # Call base class setup, which will re-initialize the
+            # manager with the alternative self._library JSON file.
+            super().setUp()
+
+        self.assertEqual(
+            str(exc.exception),
+            "Manager implementation for 'org.openassetio.examples.manager.bal' does not"
+            " support the required capabilities: entityReferenceIdentification,"
+            " managementPolicyQueries, entityTraitIntrospection",
+        )
+
+
+class Test_hasCapability_override_all(LibraryOverrideTestCase):
+    _library = "library_business_logic_suite_capabilities_all.json"
+
+    def test_when_library_lists_all_capabilities_then_hasCapability_is_true_for_all(self):
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kStatefulContexts))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kCustomTerminology))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kDefaultEntityReferences))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kResolution))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kPublishing))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kRelationshipQueries))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kExistenceQueries))
+
+
+class Test_hasCapability_override_minimal(LibraryOverrideTestCase):
+    _library = "library_business_logic_suite_capabilities_minimal.json"
+
+    def test_when_library_lists_minimal_capabilities_then_hasCapability_is_false_for_all(self):
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kStatefulContexts))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kCustomTerminology))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kDefaultEntityReferences))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kResolution))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kPublishing))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kRelationshipQueries))
+        self.assertFalse(self._manager.hasCapability(Manager.Capability.kExistenceQueries))
+
+    def test_when_capability_not_supported_then_methods_raise_NotImplementedException(self):
+        context = self.createTestContext()
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.defaultEntityReference(
+                [],
+                DefaultEntityAccess.kRead,
+                context,
+                lambda *a: self.fail("Unexpected success"),
+                lambda *a: self.fail("Unexpected element error"),
+            )
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.updateTerminology({})
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.resolve([], set(), ResolveAccess.kRead, context)
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.preflight([], [], PublishingAccess.kWrite, context)
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.register([], [], PublishingAccess.kWrite, context)
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.getWithRelationship(
+                [], TraitsData(), 1, RelationsAccess.kRead, context, set()
+            )
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.getWithRelationships(
+                self._manager.createEntityReference("bal:///"),
+                [],
+                1,
+                RelationsAccess.kRead,
+                context,
+                set(),
+            )
+
+        with self.assertRaises(NotImplementedException):
+            self._manager.entityExists([], context)
 
 
 class Test_entityTraits(FixtureAugmentedTestCase):

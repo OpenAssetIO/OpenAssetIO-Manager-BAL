@@ -1,0 +1,14 @@
+{
+  "capabilities": [
+    "entityReferenceIdentification",
+    "managementPolicyQueries",
+    "statefulContexts",
+    "customTerminology",
+    "resolution",
+    "publishing",
+    "relationshipQueries",
+    "existenceQueries",
+    "defaultEntityReferences",
+    "entityTraitIntrospection"
+  ]
+}
