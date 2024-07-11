@@ -53,6 +53,9 @@ __all__ = [
     "BasicAssetLibraryInterface",
 ]
 
+
+DEFAULT_IDENTIFIER = "org.openassetio.examples.manager.bal"
+ENV_VAR_IDENTIFIER_OVERRIDE = "OPENASSETIO_BAL_IDENTIFIER"
 SETTINGS_KEY_LIBRARY_PATH = "library_path"
 SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
 SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME = "entity_reference_url_scheme"
@@ -105,7 +108,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
         self.__library = {}
 
     def identifier(self):
-        return "org.openassetio.examples.manager.bal"
+        return os.environ.get(ENV_VAR_IDENTIFIER_OVERRIDE, DEFAULT_IDENTIFIER)
 
     def displayName(self):
         # Deliberately includes unicode chars to test string handling

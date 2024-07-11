@@ -42,6 +42,7 @@ This package should be placed on $OPENASSETIO_PLUGIN_PATH. This does not
 need to be on `$PYTHONPATH` directly, the plugin system takes care
 of extending Python's runtime paths accordingly.
 """
+import os
 
 # pylint: disable=import-outside-toplevel, invalid-name
 #
@@ -50,6 +51,8 @@ of extending Python's runtime paths accordingly.
 # of the actual implementation until it is needed by the
 # PythonPluginSystemManagerPlugin's implementation.
 from openassetio.pluginSystem import PythonPluginSystemManagerPlugin
+
+from .BasicAssetLibraryInterface import ENV_VAR_IDENTIFIER_OVERRIDE, DEFAULT_IDENTIFIER
 
 
 class BasicAssetLibraryPlugin(PythonPluginSystemManagerPlugin):
@@ -61,7 +64,7 @@ class BasicAssetLibraryPlugin(PythonPluginSystemManagerPlugin):
 
     @staticmethod
     def identifier():
-        return "org.openassetio.examples.manager.bal"
+        return os.getenv(ENV_VAR_IDENTIFIER_OVERRIDE, DEFAULT_IDENTIFIER)
 
     @classmethod
     def interface(cls):

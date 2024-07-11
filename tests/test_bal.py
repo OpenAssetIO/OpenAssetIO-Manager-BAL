@@ -74,6 +74,25 @@ class Test_BasicAssetLibrary_Plugin:
 
         assert issubclass(openassetio_manager_bal.plugin, PythonPluginSystemManagerPlugin)
 
+    def test_when_not_overridden_by_env_var_then_identifier_matches_default(self):
+        import openassetio_manager_bal  # pylint: disable=import-outside-toplevel
+
+        assert (
+            openassetio_manager_bal.plugin.identifier() == "org.openassetio.examples.manager.bal"
+        )
+        assert (
+            openassetio_manager_bal.plugin.interface().identifier()
+            == "org.openassetio.examples.manager.bal"
+        )
+
+    def test_when_overridden_by_env_var_then_identifier_matches_env_var(self, monkeypatch):
+        import openassetio_manager_bal  # pylint: disable=import-outside-toplevel
+
+        monkeypatch.setenv("OPENASSETIO_BAL_IDENTIFIER", "foo")
+
+        assert openassetio_manager_bal.plugin.identifier() == "foo"
+        assert openassetio_manager_bal.plugin.interface().identifier() == "foo"
+
 
 @pytest.fixture
 def bal_business_logic_suite(bal_base_dir):
