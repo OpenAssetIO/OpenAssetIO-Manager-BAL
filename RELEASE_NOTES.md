@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+v1.0.0-alpha.x
+---------------
+
+### New features
+
+- Added support for `OPENASSETIO_BAL_IDENTIFIER` environment variable,
+  for overriding the identifier advertised by the BAL plugin/manager.
+  [#116](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/116)
+
 v1.0.0-alpha.16
 ---------------
 
