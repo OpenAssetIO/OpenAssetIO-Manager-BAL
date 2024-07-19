@@ -105,12 +105,6 @@ fixtures = {
                 "entity_reference_url_scheme": "thingy",
             }
         },
-        "test_when_settings_have_invalid_keys_then_all_settings_unchanged": {
-            "some_settings_with_new_values_and_invalid_keys": {"library_path": "", "cat": True}
-        },
-        "test_when_settings_have_invalid_keys_then_raises_KeyError": {
-            "some_settings_with_new_values_and_invalid_keys": {"library_path": "", "cat": True}
-        },
         "test_when_settings_have_subset_of_keys_then_other_settings_unchanged": {
             "some_settings_with_a_subset_of_keys": {"simulated_query_latency_ms": 2}
         },

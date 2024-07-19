@@ -688,8 +688,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
         Parses the supplied settings dict, raising if there are any
         unrecognized keys present.
         """
-        defaults = BasicAssetLibraryInterface.__make_default_settings()
-
         if SETTINGS_KEY_LIBRARY_PATH in settings:
             if not isinstance(settings[SETTINGS_KEY_LIBRARY_PATH], str):
                 raise ValueError(f"{SETTINGS_KEY_LIBRARY_PATH} must be a str")
@@ -714,10 +712,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
                     f"{SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME} '{scheme}' must only consist of "
                     "legal URL scheme characters (a-z, A-Z, 0-9, -)"
                 )
-
-        for key in settings:
-            if key not in defaults:
-                raise KeyError(f"Unknown setting '{key}'")
 
 
 class BALEntityReferencePagerInterface(EntityReferencePagerInterface):
