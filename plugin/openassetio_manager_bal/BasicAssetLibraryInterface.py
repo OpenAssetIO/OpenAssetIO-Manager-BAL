@@ -121,6 +121,26 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return self.__settings.copy()
 
     def hasCapability(self, capability):
+        """
+        Override to report either real or configured capabilities.
+
+        The default set of capabilities reflect the true capabilities
+        of BAL.
+
+        The reported available capabilities can be configured in the
+        JSON library using the "capabilities" key, which is a list of
+        capability name strings, as defined in
+        `ManagerInterface.kCapabilityNames` - useful for testing host
+        application logic.
+
+        API methods associated with disabled capabilities will
+        short-circuit and call the base class implementation (which will
+        raise a `NotImplementedException`).
+        """
+        if self.__library.get("capabilities") is not None:
+            capabilityStr = self.kCapabilityNames[capability]
+            return capabilityStr in self.__library["capabilities"]
+
         if capability in (
             ManagerInterface.Capability.kEntityReferenceIdentification,
             ManagerInterface.Capability.kManagementPolicyQueries,
@@ -215,6 +235,10 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     @simulated_delay
     def entityExists(self, entityRefs, context, _hostSession, successCallback, errorCallback):
+        if not self.hasCapability(self.Capability.kExistenceQueries):
+            super().entityExists(entityRefs, context, _hostSession, successCallback, errorCallback)
+            return
+
         for idx, ref in enumerate(entityRefs):
             try:
                 # Use resolve-for-read access mode as closest analog.
@@ -262,6 +286,18 @@ class BasicAssetLibraryInterface(ManagerInterface):
         errorCallback,
     ):
         # pylint: disable=too-many-locals
+        if not self.hasCapability(self.Capability.kResolution):
+            super().resolve(
+                entityReferences,
+                traitSet,
+                access,
+                context,
+                hostSession,
+                successCallback,
+                errorCallback,
+            )
+            return
+
         for idx, ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(ref.toString(), access)
@@ -295,6 +331,18 @@ class BasicAssetLibraryInterface(ManagerInterface):
         successCallback,
         errorCallback,
     ):
+        if not self.hasCapability(self.Capability.kPublishing):
+            super().preflight(
+                targetEntityRefs,
+                traitsDatas,
+                access,
+                context,
+                hostSession,
+                successCallback,
+                errorCallback,
+            )
+            return
+
         if not self.__validate_access(
             "preflight",
             (PublishingAccess.kWrite,),
@@ -333,6 +381,18 @@ class BasicAssetLibraryInterface(ManagerInterface):
         successCallback,
         errorCallback,
     ):
+        if not self.hasCapability(self.Capability.kPublishing):
+            super().register(
+                targetEntityRefs,
+                entityTraitsDatas,
+                access,
+                context,
+                hostSession,
+                successCallback,
+                errorCallback,
+            )
+            return
+
         if not self.__validate_access(
             "register",
             (PublishingAccess.kWrite,),
@@ -411,6 +471,20 @@ class BasicAssetLibraryInterface(ManagerInterface):
         successCallback,
         errorCallback,
     ):
+        if not self.hasCapability(self.Capability.kRelationshipQueries):
+            super().getWithRelationship(
+                entityReferences,
+                relationshipTraitsData,
+                resultTraitSet,
+                pageSize,
+                access,
+                context,
+                _hostSession,
+                successCallback,
+                errorCallback,
+            )
+            return
+
         if not self.__validate_access(
             "relationship query",
             (RelationsAccess.kRead,),
@@ -449,6 +523,20 @@ class BasicAssetLibraryInterface(ManagerInterface):
         successCallback,
         errorCallback,
     ):
+        if not self.hasCapability(self.Capability.kRelationshipQueries):
+            super().getWithRelationships(
+                entityReference,
+                relationshipTraitsDatas,
+                resultTraitSet,
+                pageSize,
+                access,
+                context,
+                _hostSession,
+                successCallback,
+                errorCallback,
+            )
+            return
+
         if not self.__validate_access(
             "relationship query",
             (RelationsAccess.kRead,),

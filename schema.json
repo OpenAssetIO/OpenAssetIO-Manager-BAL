@@ -5,6 +5,15 @@
   "description": "The data store that backs an instance of the BAL manager",
   "type": "object",
   "properties": {
+    "capabilities": {
+      "description": "List of capabilities that BAL should advertise",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "The name of a capability, as defined in ManagerInterface.kCapabilityNames"
+      },
+      "additionalProperties": false
+    },
     "variables": {
       "description": "Arbitrary variables to be substituted in string trait properties",
       "type": "object",
