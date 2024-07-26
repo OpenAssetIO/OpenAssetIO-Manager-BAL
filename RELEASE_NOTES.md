@@ -10,6 +10,11 @@ v1.0.0-alpha.x
   of new API features.
   [#84](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/84)
 
+- Minimum OpenAssetIO-MediaCreation version increased to v1.0.0-alpha.9
+  for compatibility with the latest OpenAssetIO. See
+  [OpenAssetIO#1311](https://github.com/OpenAssetIO/OpenAssetIO/issues/1311).
+  [#90](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/90)
+
 ### New features
 
 - Added support for configuring the result of `hasCapability(...)`
