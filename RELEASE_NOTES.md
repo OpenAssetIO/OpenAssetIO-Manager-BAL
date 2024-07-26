@@ -4,6 +4,12 @@ Release Notes
 v1.0.0-alpha.x
 ---------------
 
+### Breaking changes
+
+- Minimum OpenAssetIO version increased to v1.0.0-beta.2.2 to make use
+  of new API features.
+  [#84](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/84)
+
 ### New features
 
 - Added support for configuring the result of `hasCapability(...)`
@@ -23,7 +29,6 @@ v1.0.0-alpha.16
 - Fixed normalisation of `file://` URLs from the JSON database such that
   they are no longer percent decoded before being passed on to the host.
   [#109](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/109)
-
 
 v1.0.0-alpha.15
 ---------------
