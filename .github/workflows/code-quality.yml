@@ -3,7 +3,7 @@ on: pull_request
 
 jobs:
   pylint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Pylint
     steps:
       - uses: actions/checkout@v4
@@ -11,7 +11,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -26,7 +26,7 @@ jobs:
           pylint-paths: "plugin tests"
 
   black:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Python formatting
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -44,7 +44,7 @@ jobs:
         run: black --check --diff .
 
   markdown-link-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
