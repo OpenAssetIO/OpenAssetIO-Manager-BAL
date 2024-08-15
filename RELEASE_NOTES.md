@@ -6,6 +6,10 @@ v1.0.0-alpha.x
 
 ### Breaking changes
 
+- Removed support for VFX Reference Platform CY22 or lower. This means
+  Python 3.7 and 3.9 builds are no longer tested or published.
+  [OpenAssetIO#1351](https://github.com/OpenAssetIO/OpenAssetIO/issues/1351)
+
 - Minimum OpenAssetIO version increased to v1.0.0-beta.2.2 to make use
   of new API features.
   [#84](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/84)
