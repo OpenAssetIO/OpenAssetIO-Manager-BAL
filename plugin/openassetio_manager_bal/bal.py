@@ -112,6 +112,19 @@ def exists(entity_info: EntityInfo, library: dict) -> bool:
     return True
 
 
+def default_entity(trait_set: Set[str], access: str, library: dict) -> str:
+    """
+    Retrieves the default entity for the supplied trait set and access
+    mode, if one exists in the library, otherwise raises an exception.
+    """
+    default_entities_for_access = library.get("defaultEntities", {}).get(access, [])
+    # Find the first default entity that matches the trait set
+    for default_entity_for_trait_set in default_entities_for_access:
+        if set(default_entity_for_trait_set["traits"]) == trait_set:
+            return default_entity_for_trait_set["entity"]
+    raise UnknownTraitSet(trait_set)
+
+
 def entity(entity_info: EntityInfo, library: dict) -> Entity:
     """
     Retrieves the Entity data addressed by the supplied EntityInfo
@@ -412,3 +425,12 @@ class InaccessibleEntity(RuntimeError):
 
     def __init__(self, entity_info: EntityInfo):
         super().__init__(f"Entity '{entity_info.name}' is inaccessible for {entity_info.access}")
+
+
+class UnknownTraitSet(RuntimeError):
+    """
+    An exception raised when BAL doesn't understand a given trait set.
+    """
+
+    def __init__(self, trait_set: Set[str]):
+        super().__init__(f"Unknown trait set {trait_set}")

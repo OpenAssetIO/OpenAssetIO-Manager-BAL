@@ -359,6 +359,75 @@
       "required": ["read", "write"],
       "additionalProperties": false
     },
+    "defaultEntities": {
+      "description": "A mapping of intended access and trait set to appropriate default entity",
+      "type": "object",
+      "properties": {
+        "read": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "traits": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "entity": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": [
+              "traits",
+              "entity"
+            ]
+          }
+        },
+        "write": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "traits": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "entity": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": [
+              "traits",
+              "entity"
+            ]
+          }
+        },
+        "createRelated": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "traits": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "entity": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": [
+              "traits",
+              "entity"
+            ]
+          }
+        }
+      }
+    },
     "entities": {
       "description": "The entities in the library, they key is used as the entity name.",
       "type": "object",

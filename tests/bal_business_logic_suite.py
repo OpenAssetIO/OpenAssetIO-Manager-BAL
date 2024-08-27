@@ -380,12 +380,12 @@ class Test_hasCapability_default(FixtureAugmentedTestCase):
     def test_when_hasCapability_called_then_expected_capabilities_reported(self):
         self.assertFalse(self._manager.hasCapability(Manager.Capability.kStatefulContexts))
         self.assertFalse(self._manager.hasCapability(Manager.Capability.kCustomTerminology))
-        self.assertFalse(self._manager.hasCapability(Manager.Capability.kDefaultEntityReferences))
 
         self.assertTrue(self._manager.hasCapability(Manager.Capability.kResolution))
         self.assertTrue(self._manager.hasCapability(Manager.Capability.kPublishing))
         self.assertTrue(self._manager.hasCapability(Manager.Capability.kRelationshipQueries))
         self.assertTrue(self._manager.hasCapability(Manager.Capability.kExistenceQueries))
+        self.assertTrue(self._manager.hasCapability(Manager.Capability.kDefaultEntityReferences))
 
     def test_when_hasCapability_called_on_managerInterface_then_has_mandatory_capabilities(self):
         interface = BasicAssetLibraryInterface()
@@ -613,6 +613,86 @@ class Test_entityTraits(FixtureAugmentedTestCase):
         [actual_result] = results
 
         self.assertEqual(actual_result, expected_result)
+
+
+class Test_defaultEntityReference(FixtureAugmentedTestCase):
+    """
+    Tests for the defaultEntityReference method.
+
+    Uses the `defaultEntities` entry in library_apiComplianceSuite.json.
+    """
+
+    def test_when_read_trait_set_known_then_expected_reference_returned(self):
+        expected = [
+            self._manager.createEntityReference("bal:///a_default_read_entity_for_a_and_b"),
+            self._manager.createEntityReference("bal:///a_default_read_entity_for_b_and_c"),
+        ]
+        access = DefaultEntityAccess.kRead
+
+        self.assert_expected_entity_refs_for_access(expected, access)
+
+    def test_when_write_trait_set_known_then_expected_reference_returned(self):
+        expected = [
+            self._manager.createEntityReference("bal:///a_default_write_entity_for_a_and_b"),
+            self._manager.createEntityReference("bal:///a_default_write_entity_for_b_and_c"),
+        ]
+        access = DefaultEntityAccess.kWrite
+
+        self.assert_expected_entity_refs_for_access(expected, access)
+
+    def test_when_createRelated_trait_set_known_then_expected_reference_returned(self):
+        expected = [
+            self._manager.createEntityReference("bal:///a_default_relatable_entity_for_a_and_b"),
+            self._manager.createEntityReference("bal:///a_default_relatable_entity_for_b_and_c"),
+        ]
+        access = DefaultEntityAccess.kCreateRelated
+
+        self.assert_expected_entity_refs_for_access(expected, access)
+
+    def test_when_no_default_then_entity_ref_is_None(self):
+        results = [0]  # Don't initialise to None because that's the value we expect.
+
+        self._manager.defaultEntityReference(
+            [{"c", "d"}],
+            DefaultEntityAccess.kRead,
+            self.createTestContext(),
+            lambda idx, value: operator.setitem(results, idx, value),
+            lambda idx, error: self.fail("defaultEntityReference should not fail"),
+        )
+
+        [actual] = results
+
+        self.assertIsNone(actual)
+
+    def test_when_trait_set_not_known_then_InvalidTraitSet_error(self):
+        results = [None]
+
+        self._manager.defaultEntityReference(
+            [{"a", "b", "c"}],
+            DefaultEntityAccess.kRead,
+            self.createTestContext(),
+            lambda idx, value: self.fail("defaultEntityReference should not succeed"),
+            lambda idx, error: operator.setitem(results, idx, error),
+        )
+
+        [actual] = results
+
+        self.assertIsInstance(actual, BatchElementError)
+        self.assertEqual(actual.code, BatchElementError.ErrorCode.kInvalidTraitSet)
+        self.assertRegex(actual.message, r"^Unknown trait set {'[abc]', '[abc]', '[abc]'}")
+
+    def assert_expected_entity_refs_for_access(self, expected, access):
+        actual = [None, None]
+
+        self._manager.defaultEntityReference(
+            [{"a", "b"}, {"b", "c"}],
+            access,
+            self.createTestContext(),
+            lambda idx, value: operator.setitem(actual, idx, value),
+            lambda idx, error: self.fail("defaultEntityReference should not fail"),
+        )
+
+        self.assertEqual(actual, expected)
 
 
 class Test_resolve(FixtureAugmentedTestCase):
