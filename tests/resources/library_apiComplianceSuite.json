@@ -23,6 +23,63 @@
       "default": {}
     }
   },
+  "defaultEntities": {
+    "read": [
+      {
+        "traits": [
+          "b",
+          "c"
+        ],
+        "entity": "a_default_read_entity_for_b_and_c"
+      },
+      {
+        "traits": [
+          "a",
+          "b"
+        ],
+        "entity": "a_default_read_entity_for_a_and_b"
+      },
+      {
+        "traits": [
+          "c",
+          "d"
+        ],
+        "entity": null
+      }
+    ],
+    "write": [
+      {
+        "traits": [
+          "b",
+          "c"
+        ],
+        "entity": "a_default_write_entity_for_b_and_c"
+      },
+      {
+        "traits": [
+          "a",
+          "b"
+        ],
+        "entity": "a_default_write_entity_for_a_and_b"
+      }
+    ],
+    "createRelated": [
+      {
+        "traits": [
+          "b",
+          "c"
+        ],
+        "entity": "a_default_relatable_entity_for_b_and_c"
+      },
+      {
+        "traits": [
+          "a",
+          "b"
+        ],
+        "entity": "a_default_relatable_entity_for_a_and_b"
+      }
+    ]
+  },
   "entities": {
     "anAsset⭐︎": {
       "versions": [

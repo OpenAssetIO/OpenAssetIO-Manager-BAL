@@ -149,6 +149,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             ManagerInterface.Capability.kPublishing,
             ManagerInterface.Capability.kRelationshipQueries,
             ManagerInterface.Capability.kExistenceQueries,
+            ManagerInterface.Capability.kDefaultEntityReferences,
         ):
             return True
 
@@ -232,6 +233,41 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     def isEntityReferenceString(self, someString, hostSession):
         return someString.startswith(self.__entity_refrence_prefix())
+
+    @simulated_delay
+    def defaultEntityReference(
+        self, traitSets, defaultEntityAccess, context, hostSession, successCallback, errorCallback
+    ):
+        if not self.hasCapability(self.Capability.kDefaultEntityReferences):
+            super().defaultEntityReference(
+                traitSets,
+                defaultEntityAccess,
+                context,
+                hostSession,
+                successCallback,
+                errorCallback,
+            )
+            return
+
+        for idx, trait_set in enumerate(traitSets):
+            try:
+                entity_name = bal.default_entity(
+                    trait_set, kAccessNames[defaultEntityAccess], self.__library
+                )
+                entity_ref = None
+                # Entity can legitimately be None, meaning query was OK
+                # but there is no suitable default.
+                if entity_name is not None:
+                    entity_ref = self.__build_entity_ref(
+                        bal.EntityInfo(
+                            name=entity_name,
+                            access=kAccessNames[defaultEntityAccess],
+                            version=None,
+                        )
+                    )
+                successCallback(idx, entity_ref)
+            except Exception as exc:  # pylint: disable=broad-except
+                self.__handle_exception(exc, idx, errorCallback)
 
     @simulated_delay
     def entityExists(self, entityRefs, context, _hostSession, successCallback, errorCallback):
@@ -752,6 +788,8 @@ class BasicAssetLibraryInterface(ManagerInterface):
             code = BatchElementError.ErrorCode.kEntityResolutionError
         elif isinstance(exc, bal.InaccessibleEntity):
             code = BatchElementError.ErrorCode.kEntityAccessError
+        elif isinstance(exc, bal.UnknownTraitSet):
+            code = BatchElementError.ErrorCode.kInvalidTraitSet
         else:
             raise exc
 
