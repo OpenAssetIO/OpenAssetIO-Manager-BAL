@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v1.0.0-alpha.x
+v1.0.0-beta.1.0
 ---------------
 
 ### Breaking changes
@@ -29,6 +29,11 @@ v1.0.0-alpha.x
 - Added support for `OPENASSETIO_BAL_IDENTIFIER` environment variable,
   for overriding the identifier advertised by the BAL plugin/manager.
   [#116](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/pull/116)
+
+- Added support for the `defaultEntityReference` core API method,
+  configured using a new JSON field in the database `"defaultEntities"`,
+  which maps access mode and trait set to an entity name.
+  [#53](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/53)
 
 v1.0.0-alpha.16
 ---------------
