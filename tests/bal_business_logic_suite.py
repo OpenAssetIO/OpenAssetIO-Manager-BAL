@@ -21,6 +21,7 @@ BasicAssetLibrary manager behaves with the correct business logic.
 # pylint: disable=invalid-name, missing-function-docstring, missing-class-docstring,
 # pylint: disable=too-few-public-methods,too-many-lines
 
+import json
 import operator
 import os
 import pathlib
@@ -85,6 +86,10 @@ class LibraryOverrideTestCase(FixtureAugmentedTestCase):
             "resources",
             self._library,
         )
+        # library_json takes precedence, so remove library_json to
+        # ensure library_path is used.
+        del new_settings["library_json"]
+
         self.addCleanup(self.cleanUp)
         self._manager.initialize(new_settings)
 
@@ -223,6 +228,186 @@ class Test_initialize_entity_reference_scheme(FixtureAugmentedTestCase):
             lambda _, err: self.fail(f"Failed to create new entity: {err.code} {err.message}"),
         )
         self.assertTrue(str(published_refs[0]).startswith(prefix))
+
+
+class Test_initialize_library_as_json_string(LibraryOverrideTestCase):
+    # Override library just to ensure the cleanup step gets added,
+    # restoring the library back to its original state. See base class.
+    _library = "library_apiComplianceSuite.json"
+
+    def test_when_library_loaded_from_file_then_library_setting_contains_file_contents(self):
+        settings = self._manager.settings()
+        library_path = pathlib.Path(settings["library_path"])
+        expected_library = json.loads(library_path.read_text(encoding="utf-8"))
+        actual_library = json.loads(settings["library_json"])
+
+        # For simplicity, strip dynamically calculated values.
+        del actual_library["variables"]
+        self.assertDictEqual(expected_library, actual_library)
+
+    def test_when_library_json_updated_then_settings_updated(self):
+        expected_library = {"managementPolicy": {"read": {"default": {"some.policy": {}}}}}
+
+        self._manager.initialize({"library_json": json.dumps(expected_library)})
+
+        actual_library = json.loads(self._manager.settings()["library_json"])
+
+        self.assertDictEqual(actual_library, expected_library)
+
+    def test_when_library_json_is_invalid_primitive_value_then_raises(self):
+        with self.assertRaises(ValueError) as err:
+            self._manager.initialize({"library_json": ""})
+
+        self.assertEqual("library_json must be a valid JSON string", str(err.exception))
+
+    def test_when_library_json_is_invalid_object_then_raises(self):
+        with self.assertRaises(TypeError) as err:
+            self._manager.initialize({"library_json": {"variables": {"a": "b"}}})
+
+        # Error comes from pybind11 trying to coerce dict.
+        self.assertIn("incompatible function arguments", str(err.exception))
+
+    def test_when_library_json_provided_and_library_path_blank_then_settings_updated(self):
+        # Test to ensure we don't error on a blank library_path if
+        # library_json is given
+
+        expected_library = {"managementPolicy": {"read": {"default": {"some.policy": {}}}}}
+
+        self._manager.initialize(
+            {"library_json": json.dumps(expected_library), "library_path": ""}
+        )
+
+        actual_library = json.loads(self._manager.settings()["library_json"])
+
+        self.assertDictEqual(actual_library, expected_library)
+
+    def test_when_no_library_json_and_library_path_blank_then_raises(self):
+        expected_error = "'library_json'/'library_path'/BAL_LIBRARY_PATH not set or is empty"
+
+        with self.assertRaises(ConfigurationException) as exc:
+            self._manager.initialize({"library_path": ""})
+
+        self.assertEqual(str(exc.exception), expected_error)
+
+    def test_when_library_provided_as_json_and_as_file_then_json_takes_precedence(self):
+        library_path = self._manager.settings()["library_path"]
+        self.assertGreater(len(library_path), 0)  # Confidence check.
+        expected_library = {"variables": {"a": "b"}}
+
+        self._manager.initialize(
+            {"library_json": json.dumps(expected_library), "library_path": library_path}
+        )
+        actual_library = json.loads(self._manager.settings()["library_json"])
+
+        self.assertDictEqual(expected_library, actual_library)
+
+    def test_when_initialised_with_no_library_json_then_resets_to_library_file(self):
+        # Read in initial library file.
+        library_path = pathlib.Path(self._manager.settings()["library_path"])
+        expected_library = json.loads(library_path.read_text(encoding="utf-8"))
+        self.assertGreater(len(expected_library), 0)  # Confidence check.
+
+        # Mutate library (to empty dict).
+        self._manager.initialize({"library_json": "{}"})
+        self.assertEqual("{}", self._manager.settings()["library_json"])  # Confidence check.
+
+        # Re-`initialize` with an empty settings dict, triggering a
+        # reset of the library to use the previous `library_path` file.
+        self._manager.initialize({})
+
+        actual_library = json.loads(self._manager.settings()["library_json"])
+
+        # For simplicity, strip dynamically calculated values.
+        del actual_library["variables"]
+        self.assertDictEqual(expected_library, actual_library)
+
+    def test_when_in_memory_library_is_updated_then_library_json_is_updated(self):
+        # Publish a new entity that is not in the initial JSON library.
+        # This will mutate BAL's in-memory library.
+        self._manager.register(
+            self._manager.createEntityReference("bal:///new_entity"),
+            TraitsData(),
+            PublishingAccess.kWrite,
+            self.createTestContext(),
+        )
+
+        library = json.loads(self._manager.settings()["library_json"])
+
+        self.assertIn("new_entity", library["entities"])
+
+    def test_when_library_uses_undefined_substitution_variables_then_variables_not_substituted(
+        self,
+    ):
+        # Test illustrating that implicit variables for interpolation
+        # are not available when library is given as a JSON string,
+        # unlike for library files.
+
+        # setup
+
+        expected_library_json = json.dumps(
+            {
+                "entities": {
+                    "some_entity": {
+                        "versions": [
+                            {"traits": {"some.trait": {"some_key": "${bal_library_path}"}}}
+                        ]
+                    }
+                }
+            }
+        )
+
+        # action
+
+        self._manager.initialize({"library_json": expected_library_json})
+
+        # confirm
+
+        traits_data = self._manager.resolve(
+            self._manager.createEntityReference("bal:///some_entity"),
+            {"some.trait"},
+            ResolveAccess.kRead,
+            self.createTestContext(),
+        )
+        self.assertEqual(
+            traits_data.getTraitProperty("some.trait", "some_key"), "${bal_library_path}"
+        )
+
+    def test_when_library_uses_defined_substitution_variables_then_variables_are_substituted(
+        self,
+    ):
+        # Test illustrating that variables for interpolation must be
+        # explicitly provided when library is given as a JSON string.
+        # I.e. there are no implicit variables, unlike when the library
+        # is given as a JSON file.
+
+        # setup
+
+        expected_library_json = json.dumps(
+            {
+                "variables": {"bal_library_path": "/some/path"},
+                "entities": {
+                    "some_entity": {
+                        "versions": [
+                            {"traits": {"some.trait": {"some_key": "${bal_library_path}"}}}
+                        ]
+                    }
+                },
+            }
+        )
+
+        # action
+
+        self._manager.initialize({"library_json": expected_library_json})
+
+        # confirm
+
+        traits_data = self._manager.resolve(
+            self._manager.createEntityReference("bal:///some_entity"),
+            {"some.trait"},
+            ResolveAccess.kRead,
+            self.createTestContext(),
+        )
+        self.assertEqual(traits_data.getTraitProperty("some.trait", "some_key"), "/some/path")
 
 
 class Test_managementPolicy_missing_completely(LibraryOverrideTestCase):
