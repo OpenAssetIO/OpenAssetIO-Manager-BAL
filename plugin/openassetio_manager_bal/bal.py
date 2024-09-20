@@ -98,6 +98,13 @@ def load_library(path: str) -> dict:
     return library
 
 
+def parse_library(library_json: str):
+    """
+    Parse the library from a JSON string.
+    """
+    return json.loads(library_json)
+
+
 def exists(entity_info: EntityInfo, library: dict) -> bool:
     """
     Determines if the supplied entity exists in the library
@@ -358,7 +365,7 @@ def _copy_and_expand_trait_properties(entity_version_dict: dict, library: dict) 
                 # append the other vars as kwarg. Fortunately this has
                 # exactly the precedence behaviour we want.
                 trait_data[prop] = string.Template(value).safe_substitute(
-                    os.environ, **library["variables"]
+                    os.environ, **library.get("variables", {})
                 )
 
                 subbed_val = trait_data[prop]

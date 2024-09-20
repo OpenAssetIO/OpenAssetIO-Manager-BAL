@@ -19,6 +19,7 @@
 """
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
+import json
 import os
 import re
 import time
@@ -57,6 +58,7 @@ __all__ = [
 DEFAULT_IDENTIFIER = "org.openassetio.examples.manager.bal"
 ENV_VAR_IDENTIFIER_OVERRIDE = "OPENASSETIO_BAL_IDENTIFIER"
 SETTINGS_KEY_LIBRARY_PATH = "library_path"
+SETTINGS_KEY_LIBRARY_JSON = "library_json"
 SETTINGS_KEY_SIMULATED_QUERY_LATENCY = "simulated_query_latency_ms"
 SETTINGS_KEY_ENTITY_REFERENCE_URL_SCHEME = "entity_reference_url_scheme"
 
@@ -118,7 +120,9 @@ class BasicAssetLibraryInterface(ManagerInterface):
         return {constants.kInfoKey_EntityReferencesMatchPrefix: self.__entity_refrence_prefix()}
 
     def settings(self, hostSession):
-        return self.__settings.copy()
+        augmented_settings = self.__settings.copy()
+        augmented_settings[SETTINGS_KEY_LIBRARY_JSON] = json.dumps(self.__library)
+        return augmented_settings
 
     def hasCapability(self, capability):
         """
@@ -168,37 +172,44 @@ class BasicAssetLibraryInterface(ManagerInterface):
 
     def initialize(self, managerSettings, hostSession):
         self.__validate_settings(managerSettings)
-
+        logger = hostSession.logger()
         # Settings updates can be partial, so make sure we keep any
         # existing path.
         existing_library_path = self.__settings.get("library_path")
         library_path = managerSettings.get("library_path", existing_library_path)
 
         if not library_path:
-            hostSession.logger().log(
-                hostSession.logger().Severity.kDebug,
+            logger.log(
+                logger.Severity.kDebug,
                 "'library_path' not in settings or is empty, checking "
                 f"{self.__lib_path_envvar_name}",
             )
-            library_path = os.environ.get(self.__lib_path_envvar_name)
+            library_path = os.environ.get(self.__lib_path_envvar_name, "")
 
-        if not library_path:
+        # Pop from dictionary so it doesn't get merged into persistent
+        # settings, since the library will be serialised on-demand in
+        # `settings()`.
+        library_json = managerSettings.pop("library_json", None)
+
+        if not library_path and not library_json:
             raise ConfigurationException(
-                f"'library_path'/{self.__lib_path_envvar_name} not set or is empty"
+                f"'library_json'/'library_path'/{self.__lib_path_envvar_name} not set or is empty"
             )
 
         self.__settings.update(managerSettings)
         self.__settings["library_path"] = library_path
 
-        self.__library = {}
-        hostSession.logger().log(
-            hostSession.logger().Severity.kDebug,
-            f"Loading library from '{library_path}'",
-        )
-        self.__library = bal.load_library(library_path)
+        if library_json is not None:
+            if logger.isSeverityLogged(logger.Severity.kDebug):
+                logger.log(logger.Severity.kDebug, f"Parsing library from '{library_json}'")
+            self.__library = bal.parse_library(library_json)
 
-        hostSession.logger().log(
-            hostSession.logger().Severity.kDebug,
+        else:
+            logger.log(logger.Severity.kDebug, f"Loading library from '{library_path}'")
+            self.__library = bal.load_library(library_path)
+
+        logger.log(
+            logger.Severity.kDebug,
             f"Running with simulated query latency of "
             f"{self.__settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]}ms",
         )
@@ -799,6 +810,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
     def __make_default_settings() -> dict:
         """
         Generates a default settings dict for BAL.
+
         Note: as a library is required, the default settings are not enough
         to initialize the manager.
         """
@@ -814,9 +826,20 @@ class BasicAssetLibraryInterface(ManagerInterface):
         Parses the supplied settings dict, raising if there are any
         unrecognized keys present.
         """
+        # pylint: disable=too-many-branches
         if SETTINGS_KEY_LIBRARY_PATH in settings:
             if not isinstance(settings[SETTINGS_KEY_LIBRARY_PATH], str):
                 raise ValueError(f"{SETTINGS_KEY_LIBRARY_PATH} must be a str")
+
+        if SETTINGS_KEY_LIBRARY_JSON in settings:
+            if not isinstance(settings[SETTINGS_KEY_LIBRARY_JSON], str):
+                raise ValueError(f"{SETTINGS_KEY_LIBRARY_JSON} must be a str")
+            try:
+                json.loads(settings[SETTINGS_KEY_LIBRARY_JSON])
+            except json.decoder.JSONDecodeError as err:
+                raise ValueError(
+                    f"{SETTINGS_KEY_LIBRARY_JSON} must be a valid JSON string"
+                ) from err
 
         if SETTINGS_KEY_SIMULATED_QUERY_LATENCY in settings:
             query_latency = settings[SETTINGS_KEY_SIMULATED_QUERY_LATENCY]

@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+v1.0.0-beta.x.y
+---------------
+
+### New features
+
+- Added new setting `"library_json"` to provide easier control of BAL's
+  internal library database when used in host test suites. It is a string
+  value presenting BAL's in-memory library as serialised JSON.
+  [#51](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/51)
+
+
 v1.0.0-beta.1.0
 ---------------
 

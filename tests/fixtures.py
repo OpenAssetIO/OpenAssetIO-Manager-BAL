@@ -101,6 +101,7 @@ fixtures = {
         "test_when_settings_have_all_keys_then_all_settings_updated": {
             "some_settings_with_all_keys": {
                 "library_path": blank_library_path,
+                "library_json": json.dumps({"variables": {"a": "b"}}),
                 "simulated_query_latency_ms": 0,
                 "entity_reference_url_scheme": "thingy",
             }
