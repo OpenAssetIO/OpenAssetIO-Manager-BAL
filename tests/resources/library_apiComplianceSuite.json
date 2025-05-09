@@ -181,6 +181,19 @@
         {
           "traits": {"missing": {}},
           "entities": ["missingEntity"]
+        },
+        {
+          "access": "write",
+          "traits": {"publishable": {}},
+          "entities": ["anAsset⭐︎"]
+        },
+        {
+          "traits": {
+            "openassetio-mediacreation:lifecycle.Version": {},
+            "openassetio-mediacreation:relationship.Unbounded": {},
+            "openassetio-mediacreation:usage.Relationship": {}
+          },
+          "entities": ["another 𝓐𝓼𝓼𝓼𝓮𝔱"]
         }
       ]
     },

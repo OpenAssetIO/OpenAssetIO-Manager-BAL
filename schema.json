@@ -502,6 +502,9 @@
                 "type": "object",
                 "description": "The definition of a particular relationship",
                 "properties": {
+                  "access": {
+                    "description": "Access mode that this relationship applies to (default is 'read')"
+                  },
                   "traits": {
                     "description": "Traits and their associated properties that describe the nature of the relationship itself (not the related entities).",
                     "type": "object",

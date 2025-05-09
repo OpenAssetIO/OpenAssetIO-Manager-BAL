@@ -103,7 +103,7 @@ class GetWithRelationshipTestCase(FixtureAugmentedTestCase):
     relatiionship query methods.
     """
 
-    def assertExpectedRefs(self, ref, relationship, expected_refs):
+    def assertExpectedRefs(self, ref, relationship, expected_refs, access=RelationsAccess.kRead):
         """
         Fetches all relations and asserts that they match expectations.
         """
@@ -113,7 +113,23 @@ class GetWithRelationshipTestCase(FixtureAugmentedTestCase):
             [ref],
             relationship,
             1000,
-            RelationsAccess.kRead,
+            access,
+            self.createTestContext(),
+            lambda idx, pager: result_refs.extend(pager.get()),
+            lambda _, err: self.fail(f"Failed to query relationships: {err.code} {err.message}"),
+        )
+
+        self.assertEqual(
+            [r.toString() for r in result_refs], [r.toString() for r in expected_refs]
+        )
+
+        result_refs = []
+
+        self._manager.getWithRelationships(
+            ref,
+            [relationship],
+            1000,
+            access,
             self.createTestContext(),
             lambda idx, pager: result_refs.extend(pager.get()),
             lambda _, err: self.fail(f"Failed to query relationships: {err.code} {err.message}"),
@@ -1243,52 +1259,42 @@ class Test_resolve_version_query_param(FixtureAugmentedTestCase):
         self.assertEqual(version_trait.getStableTag(), expected_stable)
 
 
-class Test_getWithRelationship_All(FixtureAugmentedTestCase):
-    # pylint: disable=cell-var-from-loop,unbalanced-tuple-unpacking
-    def test_when_unsupported_access_then_kEntityAccessError_returned(self):
-        entity_reference = self._manager.createEntityReference("bal:///entity/original")
-        relationship = TraitsData({"proxy"})
-        context = self.createTestContext()
-
-        expected = [
-            BatchElementError(
-                BatchElementError.ErrorCode.kEntityAccessError,
-                "Unsupported access mode for relationship query",
-            )
+class Test_getWithRelationship_access(GetWithRelationshipTestCase):
+    def test_when_access_mode_matches_default_then_expected_relations_returned(self):
+        input_ref = self._manager.createEntityReference("bal:///entity/original")
+        expected_refs = [
+            self._manager.createEntityReference("bal:///entity/proxy/1"),
+            self._manager.createEntityReference("bal:///entity/proxy/2"),
+            self._manager.createEntityReference("bal:///entity/proxy/3"),
         ]
+        # No "access" provided for "proxy" relationship in library, so kRead assumed.
+        self.assertExpectedRefs(
+            input_ref, TraitsData({"proxy"}), expected_refs, access=RelationsAccess.kRead
+        )
 
-        for access in (RelationsAccess.kWrite, RelationsAccess.kCreateRelated):
-            with self.subTest("getWithRelationship", access=access):
-                actual = [None]
-                self._manager.getWithRelationship(
-                    [entity_reference],
-                    relationship,
-                    10,
-                    access,
-                    context,
-                    lambda _idx, _refs: self.fail("Unexpected success callback"),
-                    lambda idx, batch_element_error: operator.setitem(
-                        actual, idx, batch_element_error
-                    ),
-                )
+    def test_when_access_mode_doesnt_match_default_then_no_relations_returned(self):
+        input_ref = self._manager.createEntityReference("bal:///entity/original")
+        expected_refs = []
+        # No "access" provided for "proxy" relationship in library, so kRead assumed.
+        self.assertExpectedRefs(
+            input_ref, TraitsData({"proxy"}), expected_refs, access=RelationsAccess.kWrite
+        )
 
-                self.assertListEqual(actual, expected)
+    def test_when_access_mode_matches_override_then_expected_relation_returned(self):
+        input_ref = self._manager.createEntityReference("bal:///entity/original")
+        expected_refs = [self._manager.createEntityReference("bal:///anAsset⭐︎")]
+        # Explicit kWrite "access" provided for "publishable" relationship in library.
+        self.assertExpectedRefs(
+            input_ref, TraitsData({"publishable"}), expected_refs, access=RelationsAccess.kWrite
+        )
 
-            with self.subTest("getWithRelationships", access=access):
-                actual = [None]
-                self._manager.getWithRelationships(
-                    entity_reference,
-                    [relationship],
-                    10,
-                    access,
-                    context,
-                    lambda _idx, _refs: self.fail("Unexpected success callback"),
-                    lambda idx, batch_element_error: operator.setitem(
-                        actual, idx, batch_element_error
-                    ),
-                )
-
-                self.assertListEqual(actual, expected)
+    def test_when_access_mode_doesnt_match_override_then_no_relations_returned(self):
+        input_ref = self._manager.createEntityReference("bal:///entity/original")
+        expected_refs = []
+        # Explicit kWrite "access" provided for "publishable" relationship in library.
+        self.assertExpectedRefs(
+            input_ref, TraitsData({"publishable"}), expected_refs, access=RelationsAccess.kRead
+        )
 
 
 class Test_preflight(FixtureAugmentedTestCase):
@@ -1675,6 +1681,23 @@ class Test_getWithRelationship_stable_ref(GetWithRelationshipTestCase):
         self.assertExpectedRefs(
             input_ref,
             StableReferenceRelationshipSpecification.create().traitsData(),
+            expected_refs,
+        )
+
+
+class Test_getWithRelationship_override_version(GetWithRelationshipTestCase):
+
+    def test_when_relationship_overrides_default_versioning_behaviour_then_override_returned(self):
+        """
+        By default, BAL handles version relationships as a special case (for better or worse). But
+        we offer a way to override that behaviour using the data-driven approach used for other
+        types of query, i.e. by explicitly defining a version relationship in the JSON library.
+        """
+        input_ref = self._manager.createEntityReference("bal:///entity/original")
+        expected_refs = [self._manager.createEntityReference("bal:///another 𝓐𝓼𝓼𝓼𝓮𝔱")]
+        self.assertExpectedRefs(
+            input_ref,
+            EntityVersionsRelationshipSpecification.create().traitsData(),
             expected_refs,
         )
 
