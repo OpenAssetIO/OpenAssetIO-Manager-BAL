@@ -11,6 +11,10 @@ v1.0.0-beta.x.y
   value presenting BAL's in-memory library as serialised JSON.
   [#51](https://github.com/OpenAssetIO/OpenAssetIO-Manager-BAL/issues/51)
 
+- Added support for access mode specific relationships and overriding
+  the special-case version relationship in the JSON database. Querying a
+  relationship with a non-`kRead` access mode is no longer an error.
+  [KatanaOpenAssetIO#4](https://github.com/TheFoundryVisionmongers/KatanaOpenAssetIO/pull/4)
 
 v1.0.0-beta.1.0
 ---------------

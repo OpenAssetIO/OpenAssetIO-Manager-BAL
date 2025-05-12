@@ -71,6 +71,7 @@ class Relation:
 
     traits: Dict[str, Dict]
     entity_infos: List[EntityInfo]
+    access: str
 
 
 def load_library(path: str) -> dict:
@@ -147,6 +148,7 @@ def entity(entity_info: EntityInfo, library: dict) -> Entity:
                 EntityInfo(name, version=None, access=entity_info.access)
                 for name in relation["entities"]
             ],
+            access=relation.get("access", "read"),
         )
         for relation in entity_dict.get("relations", [])
     ]
@@ -223,6 +225,8 @@ def related_references(
     entity_data = entity(entity_info, library)
 
     for relation in entity_data.relations:
+        if not relation.access == entity_info.access:
+            continue
         # Check if this relation contains the requested traits
         if not _dict_has_traits(relation.traits, requested_relation_traits):
             continue

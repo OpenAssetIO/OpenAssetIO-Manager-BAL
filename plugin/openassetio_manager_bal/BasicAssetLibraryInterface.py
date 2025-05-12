@@ -33,7 +33,6 @@ from openassetio.access import (
     ResolveAccess,
     EntityTraitsAccess,
     PublishingAccess,
-    RelationsAccess,
     kAccessNames,
 )
 from openassetio.errors import BatchElementError, ConfigurationException
@@ -532,14 +531,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
             )
             return
 
-        if not self.__validate_access(
-            "relationship query",
-            (RelationsAccess.kRead,),
-            access,
-            entityReferences,
-            errorCallback,
-        ):
-            return
         for idx, entity_ref in enumerate(entityReferences):
             try:
                 entity_info = self.__parse_entity_ref(entity_ref.toString(), access)
@@ -584,14 +575,6 @@ class BasicAssetLibraryInterface(ManagerInterface):
             )
             return
 
-        if not self.__validate_access(
-            "relationship query",
-            (RelationsAccess.kRead,),
-            access,
-            relationshipTraitsDatas,
-            errorCallback,
-        ):
-            return
         for idx, relationship in enumerate(relationshipTraitsDatas):
             try:
                 entity_info = self.__parse_entity_ref(entityReference.toString(), access)
@@ -616,6 +599,15 @@ class BasicAssetLibraryInterface(ManagerInterface):
         """
         relationship_trait_set = relationship_traits_data.traitSet()
 
+        # Prefer relations defined in the library before going on to
+        # query versions, in case versioning relationship is overridden
+        # explicitly in the library.
+        relations_from_library = self.__get_relations_from_library(
+            entity_info, relationship_traits_data, result_trait_set
+        )
+        if relations_from_library:
+            return relations_from_library
+
         # We don't use issuperset as otherwise we'd end up responding to
         # any more specialized relationship definitions that may be
         # added in the future, with incorrect results.
@@ -631,9 +623,7 @@ class BasicAssetLibraryInterface(ManagerInterface):
             # Remove dynamic behaviour from the reference
             return self.__get_relation_stable(entity_info)
 
-        return self.__get_relations_from_library(
-            entity_info, relationship_traits_data, result_trait_set
-        )
+        return []
 
     def __get_relations_entity_versions(self, entity_info, relationship_traits_data):
         """
