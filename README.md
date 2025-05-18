@@ -8,9 +8,10 @@ repeatable demonstrations and end-to-end tests to be realized with as
 little supporting infrastructure as possible.
 
 It is not intended to be any kind of comprehensive example of the
-breadth of functionality exposed though the OpenAssetIO API.
-See the SampleAssetManager for a more concrete example of canonical
-manager behavior.
+breadth of functionality exposed through the OpenAssetIO API. For a more
+detailed reference implementation, see
+[OpenAssetIO-MediaCreation](https://github.com/OpenAssetIO/OpenAssetIO-MediaCreation)
+or consult the [official documentation](https://openassetio.github.io/).
 
 > Note: This code is a sketch to facilitate testing and sample
 > workflows. It should never be considered in any way a "good example
