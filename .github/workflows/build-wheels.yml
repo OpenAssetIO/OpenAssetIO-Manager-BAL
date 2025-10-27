@@ -37,7 +37,7 @@ jobs:
       - name: Build wheels
         run: pip wheel --no-deps --wheel-dir wheelhouse .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: openassetio-manager-bal-wheels
           path: ./wheelhouse/*.whl
