@@ -19,6 +19,7 @@ BasicAssetLibrary manager behaves as expected concerning functional
 behaviors that don't fall under "business-logic", such as performance
 related requirements.
 """
+
 import contextlib
 import operator
 

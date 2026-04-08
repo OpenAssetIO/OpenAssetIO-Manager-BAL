@@ -24,7 +24,6 @@ from openassetio import constants
 from openassetio.trait import TraitsData
 from openassetio_mediacreation.traits.lifecycle import VersionTrait
 
-
 #
 # Test library
 #

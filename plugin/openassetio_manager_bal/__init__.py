@@ -42,6 +42,7 @@ This package should be placed on $OPENASSETIO_PLUGIN_PATH. This does not
 need to be on `$PYTHONPATH` directly, the plugin system takes care
 of extending Python's runtime paths accordingly.
 """
+
 import os
 
 # pylint: disable=import-outside-toplevel, invalid-name
