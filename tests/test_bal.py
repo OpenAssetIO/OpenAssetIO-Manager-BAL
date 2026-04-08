@@ -41,7 +41,6 @@ import pytest
 from openassetio.test.manager import harness, apiComplianceSuite
 from openassetio.pluginSystem import PythonPluginSystemManagerPlugin
 
-
 #
 # Tests
 #

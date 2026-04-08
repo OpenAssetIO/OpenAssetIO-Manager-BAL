@@ -19,6 +19,7 @@
 """
 A single-class module, providing the BasicAssetLibraryInterface class.
 """
+
 import json
 import os
 import re
@@ -47,7 +48,6 @@ from openassetio_mediacreation.specifications.lifecycle import (
 )
 
 from . import bal
-
 
 __all__ = [
     "BasicAssetLibraryInterface",
