@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v1.0.0-beta.x.y
+v1.0.0-beta.1.1
 ---------------
 
 ### New features
